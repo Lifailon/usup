@@ -1,0 +1,45 @@
+env:
+  FILE_NAME: test
+  FILE_FORMAT: txt
+
+networks:
+  dev:
+    hosts:
+      # - localhost
+      - lifailon@192.168.3.101:2121
+      # - lifailon@192.168.3.102:22
+      # - lifailon@192.168.3.103:22
+      - lifailon@192.168.3.104:22
+
+commands:
+  bash:
+    desc: Interactive Bash on all hosts
+    stdin: true
+    run: bash
+  echo:
+    desc: Print filename from env vars
+    run: echo $FILE_NAME.$FILE_FORMAT
+  uptime:
+    desc: Host uptime
+    run: uptime
+  date:
+    desc: Print OS name and current date/time
+    run: |
+       uname -a
+       date
+  upload:
+    desc: Upload dist files to all hosts
+    upload:
+      - src: ./$FILE_NAME.$FILE_FORMAT
+        dst: /tmp/
+  cat:
+     desc: Print OS name and current date/time
+     run: cat /tmp/$FILE_NAME.$FILE_FORMAT
+
+targets:
+  get:
+    - uptime
+    - date
+  up:
+    - upload
+    - cat
