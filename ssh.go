@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
+	"log"
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 )
 
-// Client is a wrapper over the SSH connection/sessions.
+// Клиент - это обертка над ssh соединением/сессией
 type SSHClient struct {
 	conn         *ssh.Client
 	sess         *ssh.Session
@@ -27,7 +27,7 @@ type SSHClient struct {
 	connOpened   bool
 	sessOpened   bool
 	running      bool
-	env          string //export FOO="bar"; export BAR="baz";
+	env          string // export FOO="bar"; export BAR="baz";
 	color        string
 }
 
@@ -41,36 +41,41 @@ func (e ErrConnect) Error() string {
 	return fmt.Sprintf(`Connect("%v@%v"): %v`, e.User, e.Host, e.Reason)
 }
 
-// parseHost parses and normalizes <user>@<host:port> from a given string.
+// Парсим строку формата <user>@<host:port>
 func (c *SSHClient) parseHost(host string) error {
 	c.host = host
 
-	// Remove extra "ssh://" schema
-	if len(c.host) > 6 && c.host[:6] == "ssh://" {
+	// Удалить протокол "ssh://" в начале строки хоста
+	if strings.HasPrefix(c.host, "ssh://") {
 		c.host = c.host[6:]
 	}
 
-	// Split by the last "@", since there may be an "@" in the username.
+	// Разбить на два значения до и после "@" (в имени пользователя может быть "@")
 	if at := strings.LastIndex(c.host, "@"); at != -1 {
 		c.user = c.host[:at]
 		c.host = c.host[at+1:]
 	}
 
-	// Add default user, if not set
+	// Добавить текущего системного пользователя по умолчанию, если не установлено
 	if c.user == "" {
 		u, err := user.Current()
 		if err != nil {
 			return err
 		}
 		c.user = u.Username
+		// Удаляем доменную часть, если она есть
+		if strings.Contains(c.user, "\\") {
+			c.user = strings.Split(c.user, "\\")[1]
+		}
 	}
 
-	if strings.Index(c.host, "/") != -1 {
+	// Исключаем символ "/" в адресе хоста
+	if strings.Contains(c.host, "/") {
 		return ErrConnect{c.user, c.host, "unexpected slash in the host URL"}
 	}
 
-	// Add default port, if not set
-	if strings.Index(c.host, ":") == -1 {
+	// Добавить порт по умолчанию, если не установлен
+	if !strings.Contains(c.host, ":") {
 		c.host += ":22"
 	}
 
@@ -80,34 +85,60 @@ func (c *SSHClient) parseHost(host string) error {
 var initAuthMethodOnce sync.Once
 var authMethod ssh.AuthMethod
 
-// initAuthMethod initiates SSH authentication method.
+// Инициализация метода аутентификации SSH
 func initAuthMethod() {
+	// Определяем переменную (массив) для ключей
 	var signers []ssh.Signer
 
-	// If there's a running SSH Agent, try to use its Private keys.
-	sock, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
-	if err == nil {
-		agent := agent.NewClient(sock)
-		signers, _ = agent.Signers()
-	}
+	// ОТКЛЮЧЕНО
+	// Если есть запущенный ssh-agent, использовать его ключи
+	// Подключение к сокету по пути из переменной окружения и извлечение содержимого приватного ключа в массив signers
+	// sock, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
+	// if err == nil {
+	// 	agent := agent.NewClient(sock)
+	// 	signers, _ = agent.Signers()
+	// }
 
-	// Try to read user's SSH private keys form the standard paths.
-	files, _ := filepath.Glob(os.Getenv("HOME") + "/.ssh/id_*")
+	// Найти и прочитать закрытый SSH ключ пользователя из стандартных путей
+	var envPath string
+	// Определяем домашний каталог поиска для Windows и Linux
+	if runtime.GOOS == "windows" {
+		envPath = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH") + "\\.ssh\\id_*"
+	} else {
+		envPath = os.Getenv("HOME") + "/.ssh/id_*"
+	}
+	files, _ := filepath.Glob(envPath)
+	// Проходимся по всем файлам
 	for _, file := range files {
+		// Пропускаем публичные ключи
 		if strings.HasSuffix(file, ".pub") {
-			continue // Skip public keys.
+			continue
 		}
+
+		// Читаем файл
 		data, err := ioutil.ReadFile(file)
 		if err != nil {
+			log.Fatal("error reading ssh key", err)
 			continue
 		}
+
+		// Парсим приватный ssh ключ из байтового среза и добавляем в массив signers
 		signer, err := ssh.ParsePrivateKey(data)
 		if err != nil {
+			log.Fatal("error parsing ssh key", err)
 			continue
 		}
+
+		// Добавляем ключ в массив
 		signers = append(signers, signer)
 
+		// Вывод публичного ключа для отладки
+		// fmt.Printf("Signer: %+v\n", signer)
+
+		// Останавливаем цикл поиска после успешного добавляения ключа
+		// break
 	}
+
 	authMethod = ssh.PublicKeys(signers...)
 }
 
@@ -120,12 +151,11 @@ func (c *SSHClient) Connect(host string) error {
 	return c.ConnectWith(host, ssh.Dial)
 }
 
-// ConnectWith creates a SSH connection to a specified host. It will use dialer to establish the
-// connection.
-// TODO: Split Signers to its own method.
+// Создает ssh соединение с указанным хостом с использованием dialer для авторизации по ключу
 func (c *SSHClient) ConnectWith(host string, dialer SSHDialFunc) error {
+	// Уже подключен
 	if c.connOpened {
-		return fmt.Errorf("Already connected")
+		return fmt.Errorf("already connected")
 	}
 
 	initAuthMethodOnce.Do(initAuthMethod)
@@ -152,13 +182,16 @@ func (c *SSHClient) ConnectWith(host string, dialer SSHDialFunc) error {
 	return nil
 }
 
-// Run runs the task.Run command remotely on c.host.
+// Run запускает команду task.Run удаленно на хосте c.host
 func (c *SSHClient) Run(task *Task) error {
+	// Сессия уже запущена
 	if c.running {
-		return fmt.Errorf("Session already running")
+		return fmt.Errorf("session already running")
 	}
+
+	// Сессия уже подключена
 	if c.sessOpened {
-		return fmt.Errorf("Session already connected")
+		return fmt.Errorf("session already connected")
 	}
 
 	sess, err := c.conn.NewSession()
@@ -188,13 +221,14 @@ func (c *SSHClient) Run(task *Task) error {
 			ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
 			ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 		}
+
 		// Request pseudo terminal
 		if err := sess.RequestPty("xterm", 80, 40, modes); err != nil {
 			return ErrTask{task, fmt.Sprintf("request for pseudo terminal failed: %s", err)}
 		}
 	}
 
-	// Start the remote command.
+	// Запуск удаленной команды
 	if err := sess.Start(c.env + task.Run); err != nil {
 		return ErrTask{task, err.Error()}
 	}
@@ -205,11 +239,10 @@ func (c *SSHClient) Run(task *Task) error {
 	return nil
 }
 
-// Wait waits until the remote command finishes and exits.
-// It closes the SSH session.
+// Дожидается окончания выполнения удаленной команды и выходит из системы (закрывает ssh сессию)
 func (c *SSHClient) Wait() error {
 	if !c.running {
-		return fmt.Errorf("Trying to wait on stopped session")
+		return fmt.Errorf("trying to wait on stopped session")
 	}
 
 	err := c.sess.Wait()
@@ -220,7 +253,7 @@ func (c *SSHClient) Wait() error {
 	return err
 }
 
-// DialThrough will create a new connection from the ssh server sc is connected to. DialThrough is an SSHDialer.
+// Создает новое ssh соединение с сервером через уже существующие ssh подключение
 func (sc *SSHClient) DialThrough(net, addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
 	conn, err := sc.conn.Dial(net, addr)
 	if err != nil {
@@ -231,7 +264,6 @@ func (sc *SSHClient) DialThrough(net, addr string, config *ssh.ClientConfig) (*s
 		return nil, err
 	}
 	return ssh.NewClient(c, chans, reqs), nil
-
 }
 
 // Close closes the underlying SSH connection and session.
@@ -240,8 +272,10 @@ func (c *SSHClient) Close() error {
 		c.sess.Close()
 		c.sessOpened = false
 	}
+
+	// Попытка закрыть уже закрытое соединение
 	if !c.connOpened {
-		return fmt.Errorf("Trying to close the already closed connection")
+		return fmt.Errorf("trying to close the already closed connection")
 	}
 
 	err := c.conn.Close()
@@ -283,13 +317,11 @@ func (c *SSHClient) Signal(sig os.Signal) error {
 
 	switch sig {
 	case os.Interrupt:
-		// TODO: Turns out that .Signal(ssh.SIGHUP) doesn't work for me.
-		// Instead, sending \x03 to the remote session works for me,
-		// which sounds like something that should be fixed/resolved
-		// upstream in the golang.org/x/crypto/ssh pkg.
-		// https://github.com/golang/go/issues/4115#issuecomment-66070418
 		c.remoteStdin.Write([]byte("\x03"))
 		return c.sess.Signal(ssh.SIGINT)
+		// Сигнал SIGHUP не работает
+		// https://github.com/golang/go/issues/4115#issuecomment-66070418
+		// return c.sess.Signal(ssh.SIGHUP)
 	default:
 		return fmt.Errorf("%v not supported", sig)
 	}
