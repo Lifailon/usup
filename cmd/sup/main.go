@@ -12,9 +12,9 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/Lifailon/sup"
 	"github.com/mikkeloscar/sshconfig"
 	"github.com/pkg/errors"
-	"github.com/pressly/sup"
 )
 
 var (

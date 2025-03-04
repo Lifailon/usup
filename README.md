@@ -1,7 +1,8 @@
-Stack Up
-========
+# Lazy Stack Up
 
-Stack Up is a simple deployment tool that performs given set of commands on multiple hosts in parallel. It reads Supfile, a YAML configuration file, which defines networks (groups of hosts), commands and targets.
+A very simple deployment tool that runs a given set of bash commands on multiple hosts in parallel. It reads `Supfile` (`yaml` configuration), which defines networks (groups of hosts), variables, commands and targets (groups of commands).
+
+This project is a fork of the [sup](https://github.com/pressly/sup), which has been unmaintained since 2018. Primarily to fix a common ssh connection error, as well as to expand functionality.
 
 # Demo
 
@@ -9,9 +10,14 @@ Stack Up is a simple deployment tool that performs given set of commands on mult
 
 *Note: Demo is based on [this example Supfile](./example/Supfile).*
 
-# Installation
+<!-- 
+# Install
 
-    $ go get -u github.com/pressly/sup/cmd/sup
+version=$(curl -s https://api.github.com/repos/pressly/sup/releases/latest | jq -r .tag_name)
+curl -L "https://github.com/pressly/sup/releases/download/$version/sup-linux64" -o $HOME/.local/bin/sup
+chmod +x $HOME/.local/bin/sup
+sup --version
+-->
 
 # Usage
 

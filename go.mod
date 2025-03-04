@@ -1,4 +1,4 @@
-module github.com/pressly/sup
+module github.com/Lifailon/sup
 
 go 1.23.0
 
