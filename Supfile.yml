@@ -3,13 +3,17 @@ env:
   FILE_FORMAT: txt
 
 networks:
+  local:
+    hosts:
+      - localhost
   dev:
     hosts:
-      # - localhost
       - lifailon@192.168.3.101:2121
-      # - lifailon@192.168.3.102:22
-      # - lifailon@192.168.3.103:22
-      - lifailon@192.168.3.104:22
+      - lifailon@192.168.3.104:2121
+  bsd:
+    hosts:
+      - lifailon@192.168.3.102:22
+      - root@192.168.3.103:22
 
 commands:
   bash:
@@ -27,6 +31,9 @@ commands:
     run: |
        uname -a
        date
+  file:
+    desc: Creat new test file
+    run: echo "This is test" > ./$FILE_NAME.$FILE_FORMAT
   upload:
     desc: Upload dist files to all hosts
     upload:
