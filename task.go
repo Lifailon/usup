@@ -9,7 +9,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Task represents a set of commands to be run.
+// Задание представляет собой набор команд, которые нужно выполнить
+// Основная структура Task
 type Task struct {
 	Run     string
 	Input   io.Reader
@@ -25,7 +26,7 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]*
 		return nil, errors.Wrap(err, "resolving CWD failed")
 	}
 
-	// Anything to upload?
+	// Upload task
 	for _, upload := range cmd.Upload {
 		uploadFile, err := ResolveLocalPath(cwd, upload.Src, env)
 		if err != nil {
@@ -46,7 +47,7 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]*
 			task.Clients = []Client{clients[0]}
 			tasks = append(tasks, &task)
 		} else if cmd.Serial > 0 {
-			// Each "serial" task client group is executed sequentially.
+			// Каждая клиентская группа серийных задач (из target) выполняется последовательно
 			for i := 0; i < len(clients); i += cmd.Serial {
 				j := i + cmd.Serial
 				if j > len(clients) {
@@ -62,7 +63,7 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]*
 		}
 	}
 
-	// Script. Read the file as a multiline input command.
+	// Script - читать файл как многострочную команду
 	if cmd.Script != "" {
 		f, err := os.Open(cmd.Script)
 		if err != nil {
@@ -87,7 +88,7 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]*
 			task.Clients = []Client{clients[0]}
 			tasks = append(tasks, &task)
 		} else if cmd.Serial > 0 {
-			// Each "serial" task client group is executed sequentially.
+			// Каждая клиентская группа серийных задач (из target) выполняется последовательно
 			for i := 0; i < len(clients); i += cmd.Serial {
 				j := i + cmd.Serial
 				if j > len(clients) {
@@ -103,7 +104,7 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]*
 		}
 	}
 
-	// Local command.
+	// Локальная команда (localhost)
 	if cmd.Local != "" {
 		local := &LocalhostClient{
 			env: env + `export SUP_HOST="localhost";`,
@@ -123,7 +124,7 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]*
 		tasks = append(tasks, task)
 	}
 
-	// Remote command.
+	// Удаленная команда (ssh)
 	if cmd.Run != "" {
 		task := Task{
 			Run: cmd.Run,
@@ -139,7 +140,7 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]*
 			task.Clients = []Client{clients[0]}
 			tasks = append(tasks, &task)
 		} else if cmd.Serial > 0 {
-			// Each "serial" task client group is executed sequentially.
+			// Каждая клиентская группа серийных задач (из target) выполняется последовательно
 			for i := 0; i < len(clients); i += cmd.Serial {
 				j := i + cmd.Serial
 				if j > len(clients) {

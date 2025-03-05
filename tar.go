@@ -9,12 +9,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Copying dirs/files over SSH using TAR.
+// Копирование директорий и файлов по ssh с использованием TAR.
 // tar -C . -cvzf - $SRC | ssh $HOST "tar -C $DST -xvzf -"
 
-// RemoteTarCommand returns command to be run on remote SSH host
-// to properly receive the created TAR stream.
-// TODO: Check for relative directory.
+// RemoteTarCommand возвращает команду, которая должна быть запущена на удаленном SSH-хосте
+// TODO: Проверка относительной директории.
 func RemoteTarCommand(dir string) string {
 	return fmt.Sprintf("tar -C \"%s\" -xzf -", dir)
 }
@@ -22,7 +21,7 @@ func RemoteTarCommand(dir string) string {
 func LocalTarCmdArgs(path, exclude string) []string {
 	args := []string{}
 
-	// Added pattens to exclude from tar compress
+	// Добавлены паттерны для исключения из tar compress
 	excludes := strings.Split(exclude, ",")
 	for _, exclude := range excludes {
 		trimmed := strings.TrimSpace(exclude)
@@ -35,8 +34,8 @@ func LocalTarCmdArgs(path, exclude string) []string {
 	return args
 }
 
-// NewTarStreamReader creates a tar stream reader from a local path.
-// TODO: Refactor. Use "archive/tar" instead.
+// NewTarStreamReader создает устройство чтения потока tar из локального пути
+// TODO: Вместо этого использовать "archive/tar".
 func NewTarStreamReader(cwd, path, exclude string) (io.Reader, error) {
 	cmd := exec.Command("tar", LocalTarCmdArgs(path, exclude)...)
 	cmd.Dir = cwd

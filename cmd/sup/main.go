@@ -67,12 +67,11 @@ func init() {
 	flag.BoolVar(&showHelp, "help", false, "Show help")
 }
 
+// Вывести список доступных networks/hosts
 func networkUsage(conf *sup.Supfile) {
 	w := &tabwriter.Writer{}
 	w.Init(os.Stderr, 4, 4, 2, ' ', 0)
 	defer w.Flush()
-
-	// Print available networks/hosts.
 	fmt.Fprintln(w, "Networks:\t")
 	for _, name := range conf.Networks.Names {
 		fmt.Fprintf(w, "- %v\n", name)
@@ -84,12 +83,11 @@ func networkUsage(conf *sup.Supfile) {
 	fmt.Fprintln(w)
 }
 
+// Вывести список доступных targets/commands
 func cmdUsage(conf *sup.Supfile) {
 	w := &tabwriter.Writer{}
 	w.Init(os.Stderr, 4, 4, 2, ' ', 0)
 	defer w.Flush()
-
-	// Print available targets/commands.
 	fmt.Fprintln(w, "Targets:\t")
 	for _, name := range conf.Targets.Names {
 		cmds, _ := conf.Targets.Get(name)
@@ -104,25 +102,26 @@ func cmdUsage(conf *sup.Supfile) {
 	fmt.Fprintln(w)
 }
 
-// parseArgs parses args and returns network and commands to be run.
-// On error, it prints usage and exits.
+// Анализирует аргументы и возвращает сеть/хосты или таргеты/команды, доступные для выполнения
+// При ошибке выводит help и завершает работу
 func parseArgs(conf *sup.Supfile) (*sup.Network, []*sup.Command, error) {
 	var commands []*sup.Command
 
+	// Если аргументы отсутствуют
 	args := flag.Args()
 	if len(args) < 1 {
 		networkUsage(conf)
 		return nil, nil, ErrUsage
 	}
 
-	// Does the <network> exist?
+	// Проверяем первый аргумент на соответствие со списком сетей, что бы пройти дальше
 	network, ok := conf.Networks.Get(args[0])
 	if !ok {
 		networkUsage(conf)
 		return nil, nil, ErrUnknownNetwork
 	}
 
-	// Parse CLI --env flag env vars, override values defined in Network env.
+	// Разбор флага "--env", переопределяющие значения, определенные в конфигурации env
 	for _, env := range envVars {
 		if len(env) == 0 {
 			continue
@@ -137,39 +136,40 @@ func parseArgs(conf *sup.Supfile) (*sup.Network, []*sup.Command, error) {
 		network.Env.Set(env[:i], env[i+1:])
 	}
 
+	// Заполняем массив хостов из выбранной группы network
 	hosts, err := network.ParseInventory()
 	if err != nil {
 		return nil, nil, err
 	}
 	network.Hosts = append(network.Hosts, hosts...)
 
-	// Does the <network> have at least one host?
+	// Проверка, что массив хостов не пустой
 	if len(network.Hosts) == 0 {
 		networkUsage(conf)
 		return nil, nil, ErrNetworkNoHosts
 	}
 
-	// Check for the second argument
+	// Проверка второго аргумента (выводим команды и таргеты)
 	if len(args) < 2 {
 		cmdUsage(conf)
 		return nil, nil, ErrUsage
 	}
 
-	// In case of the network.Env needs an initialization
+	// Заполняем network.Env из Supfile, если не было инициализации через аргументы
 	if network.Env == nil {
 		network.Env = make(sup.EnvList, 0)
 	}
 
-	// Add default env variable with current network
+	// Добавить переменную окружения по умолчанию с названием текущей сети
 	network.Env.Set("SUP_NETWORK", args[0])
 
-	// Add default nonce
+	// Добавить SUP_TIME
 	network.Env.Set("SUP_TIME", time.Now().UTC().Format(time.RFC3339))
 	if os.Getenv("SUP_TIME") != "" {
 		network.Env.Set("SUP_TIME", os.Getenv("SUP_TIME"))
 	}
 
-	// Add user
+	// Добавить SUP_USER
 	if os.Getenv("SUP_USER") != "" {
 		network.Env.Set("SUP_USER", os.Getenv("SUP_USER"))
 	} else {
@@ -177,10 +177,10 @@ func parseArgs(conf *sup.Supfile) (*sup.Network, []*sup.Command, error) {
 	}
 
 	for _, cmd := range args[1:] {
-		// Target?
+		// Повторять команды из target
 		target, isTarget := conf.Targets.Get(cmd)
 		if isTarget {
-			// Loop over target's commands.
+			// Заполнить массив commands
 			for _, cmd := range target {
 				command, isCommand := conf.Commands.Get(cmd)
 				if !isCommand {
@@ -192,7 +192,7 @@ func parseArgs(conf *sup.Supfile) (*sup.Network, []*sup.Command, error) {
 			}
 		}
 
-		// Command?
+		// Или добавляем одну команду в commands
 		command, isCommand := conf.Commands.Get(cmd)
 		if isCommand {
 			command.Name = cmd
@@ -205,6 +205,7 @@ func parseArgs(conf *sup.Supfile) (*sup.Network, []*sup.Command, error) {
 		}
 	}
 
+	// Возвращяем сеть (хосты + переменные) и массив команд
 	return &network, commands, nil
 }
 
@@ -241,7 +242,7 @@ func main() {
 	data, err := ioutil.ReadFile(resolvePath(supfile))
 	if err != nil {
 		firstErr := err
-		data, err = ioutil.ReadFile("./Supfile.yml") // Alternative to ./Supfile.
+		data, err = ioutil.ReadFile("./Supfile.yml") // Alternative to ./Supfile
 		if err != nil {
 			fmt.Fprintln(os.Stderr, firstErr)
 			fmt.Fprintln(os.Stderr, err)
@@ -254,7 +255,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Parse network and commands to be run from args.
+	// Парсинг сети и команды из аргументов для выполнения
 	network, commands, err := parseArgs(conf)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -340,7 +341,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Parse CLI --env flag env vars, define $SUP_ENV and override values defined in Supfile.
+	// Парсинг флагов cli --env, определяет $SUP_ENV и переопределяет значения, определенные в Supfile
 	var cliVars sup.EnvList
 	for _, env := range envVars {
 		if len(env) == 0 {
@@ -357,15 +358,15 @@ func main() {
 		cliVars.Set(env[:i], env[i+1:])
 	}
 
-	// SUP_ENV is generated only from CLI env vars.
-	// Separate loop to omit duplicates.
+	// SUP_ENV генерируется только cli
+	// Разделить цикл, чтобы исключить дублирование
 	supEnv := ""
 	for _, v := range cliVars {
 		supEnv += fmt.Sprintf(" -e %v=%q", v.Key, v.Value)
 	}
 	vars.Set("SUP_ENV", strings.TrimSpace(supEnv))
 
-	// Create new Stackup app.
+	// Создайте новое приложение Stackup
 	app, err := sup.New(conf)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -374,7 +375,7 @@ func main() {
 	app.Debug(debug)
 	app.Prefix(!disablePrefix)
 
-	// Run all the commands in the given network.
+	// Запустить все команды в указанной сети
 	err = app.Run(network, vars, commands...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

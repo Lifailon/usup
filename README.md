@@ -4,24 +4,45 @@ A very simple deployment tool that runs a given set of bash commands on multiple
 
 This project is a fork of the [sup](https://github.com/pressly/sup), which has been unmaintained since 2018. Primarily to fix a common ssh connection error, as well as to expand functionality.
 
-# Demo
+## Demo
 
 [![Sup](https://github.com/pressly/sup/blob/gif/asciinema.gif?raw=true)](https://asciinema.org/a/19742?autoplay=1)
 
 *Note: Demo is based on [this example Supfile](./example/Supfile).*
 
-<!-- 
-# Install
+## Install
 
-version=$(curl -s https://api.github.com/repos/pressly/sup/releases/latest | jq -r .tag_name)
-curl -L "https://github.com/pressly/sup/releases/download/$version/sup-linux64" -o $HOME/.local/bin/sup
+```bash
+os="linux"
+arch="amd64"
+version=$(curl -s https://api.github.com/repos/Lifailon/lazysup/releases/latest | jq -r .tag_name)
+curl -L "https://github.com/Lifailon/lazysup/releases/download/$version/sup-$os-$arch" -o $HOME/.local/bin/sup
 chmod +x $HOME/.local/bin/sup
-sup --version
--->
+```
 
-# Usage
+## Build
 
-    $ sup [OPTIONS] NETWORK COMMAND [...]
+### Windows
+
+```bash
+go build -o bin/sup.exe ./cmd/sup
+bin/sup -v
+```
+
+### Linux
+
+```bash
+go build -o bin/sup ./cmd/sup
+bin/sup -v
+```
+
+## Usage
+
+```bash
+sup [OPTIONS] NETWORK COMMAND [...]
+
+sup dev date
+```
 
 ### Options
 
@@ -219,7 +240,7 @@ is equivalent to
 
 `$ sup production build pull migrate-db-up stop-rm-run health slack-notify airbrake-notify`
 
-# Supfile
+## Supfile
 
 See [example Supfile](./example/Supfile).
 
@@ -269,7 +290,7 @@ targets:
 - `$SUP_TIME` - Date/time of sup command invocation.
 - `$SUP_ENV` - Environment variables provided on sup command invocation. You can pass `$SUP_ENV` to another `sup` or `docker` commands in your Supfile.
 
-# Running sup from Supfile
+## Running sup from Supfile
 
 Supfile doesn't let you import another Supfile. Instead, it lets you run `sup` sub-process from inside your Supfile. This is how you can structure larger projects:
 
@@ -291,7 +312,7 @@ Top-level Supfile calls `sup` with Supfiles from sub-projects:
       sup -f ./database/Supfile $SUP_ENV $SUP_NETWORK up
 ```
 
-# Common SSH Problem
+## Common SSH Problem
 
 if for some reason sup doesn't connect and you get the following error,
 
@@ -317,7 +338,7 @@ ssh-add ~/.ssh/id_rsa
 you should now be able to use sup with your ssh key.
 
 
-# Development
+## Development
 
     fork it, hack it..
 
@@ -327,6 +348,6 @@ you should now be able to use sup with your ssh key.
 
 We'll be happy to review & accept new Pull Requests!
 
-# License
+## License
 
 Licensed under the [MIT License](./LICENSE).

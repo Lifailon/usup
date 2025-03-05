@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-const VERSION = "0.5"
+const VERSION = "0.6.0"
 
 type Stackup struct {
 	conf   *Supfile
@@ -27,10 +27,8 @@ func New(conf *Supfile) (*Stackup, error) {
 	}, nil
 }
 
-// Run runs set of commands on multiple hosts defined by network sequentially.
-// TODO: This megamoth method needs a big refactor and should be split
-//
-//	to multiple smaller methods.
+// Последовательный запуск набора команд на нескольких хостах, определенных в network
+// TODO: Раздробить функциюю на несколько маленьких
 func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command) error {
 	if len(commands) == 0 {
 		return errors.New("no commands to be run")
@@ -56,7 +54,7 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 		go func(i int, host string) {
 			defer wg.Done()
 
-			// Localhost client.
+			// Localhost client
 			if host == "localhost" {
 				local := &LocalhostClient{
 					env: env + `export SUP_HOST="` + host + `";`,
@@ -69,7 +67,7 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 				return
 			}
 
-			// SSH client.
+			// SSH client
 			remote := &SSHClient{
 				env:   env + `export SUP_HOST="` + host + `";`,
 				user:  network.User,
@@ -110,26 +108,26 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 		return errors.Wrap(err, "connecting to clients failed")
 	}
 
-	// Run command or run multiple commands defined by target sequentially.
+	// Запуск одной команды или последовательное выполнение нескольких команд из targets
 	for _, cmd := range commands {
-		// Translate command into task(s).
+		// Перевод из команды в задачу (task)
 		tasks, err := sup.createTasks(cmd, clients, env)
 		if err != nil {
 			return errors.Wrap(err, "creating task failed")
 		}
 
-		// Run tasks sequentially.
+		// Последовательное выполнение задач
 		for _, task := range tasks {
 			var writers []io.Writer
 			var wg sync.WaitGroup
 
-			// Run tasks on the provided clients.
+			// Выполнять задания на предоставленных клиентах
 			for _, c := range task.Clients {
 				var prefix string
 				var prefixLen int
 				if sup.prefix {
 					prefix, prefixLen = c.Prefix()
-					if len(prefix) < maxLen { // Left padding.
+					if len(prefix) < maxLen { // Left padding
 						prefix = strings.Repeat(" ", maxLen-prefixLen) + prefix
 					}
 				}
@@ -139,19 +137,19 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 					return errors.Wrap(err, prefix+"task failed")
 				}
 
-				// Copy over tasks's STDOUT.
+				// Копировать STDOUT задач
 				wg.Add(1)
 				go func(c Client) {
 					defer wg.Done()
 					_, err := io.Copy(os.Stdout, prefixer.New(c.Stdout(), prefix))
 					if err != nil && err != io.EOF {
-						// TODO: io.Copy() should not return io.EOF at all.
-						// Upstream bug? Or prefixer.WriteTo() bug?
+						// TODO: io.Copy() вообще не должна возвращать io.EOF.
+						// Ошибка восходящего потока или ошибка prefixer.WriteTo() ?
 						fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, prefix+"reading STDOUT failed"))
 					}
 				}(c)
 
-				// Copy over tasks's STDERR.
+				// Копировать STDERR задач
 				wg.Add(1)
 				go func(c Client) {
 					defer wg.Done()
@@ -164,7 +162,7 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 				writers = append(writers, c.Stdin())
 			}
 
-			// Copy over task's STDIN.
+			// Копировать STDIN задач
 			if task.Input != nil {
 				go func() {
 					writer := io.MultiWriter(writers...)
@@ -172,14 +170,14 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 					if err != nil && err != io.EOF {
 						fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "copying STDIN failed"))
 					}
-					// TODO: Use MultiWriteCloser (not in Stdlib), so we can writer.Close() instead?
+					// TODO: Использовать MultiWriteCloser (его нет в Stdlib), чтобы вместо этого мы могли writer.Close()?
 					for _, c := range clients {
 						c.WriteClose()
 					}
 				}()
 			}
 
-			// Catch OS signals and pass them to all active clients.
+			// Ловит сигналы OS и передает их всем активным клиентам
 			trap := make(chan os.Signal, 1)
 			signal.Notify(trap, os.Interrupt)
 			go func() {
@@ -199,10 +197,10 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 				}
 			}()
 
-			// Wait for all I/O operations first.
+			// Сначала дождаться выполнения всех операций ввода-вывода
 			wg.Wait()
 
-			// Make sure each client finishes the task, return on failure.
+			// Проверить, что каждый клиент закончил выполнение задачи
 			for _, c := range task.Clients {
 				wg.Add(1)
 				go func(c Client) {
@@ -217,22 +215,22 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 							}
 						}
 						if e, ok := err.(*ssh.ExitError); ok && e.ExitStatus() != 15 {
-							// TODO: Store all the errors, and print them after Wait().
+							// TODO: Сохранять все ошибки и выводить их после Wait()
 							fmt.Fprintf(os.Stderr, "%s%v\n", prefix, e)
 							os.Exit(e.ExitStatus())
 						}
 						fmt.Fprintf(os.Stderr, "%s%v\n", prefix, err)
 
-						// TODO: Shouldn't os.Exit(1) here. Instead, collect the exit statuses for later.
+						// TODO: Здесь не должно быть os.Exit(1). Вместо этого нужно собирать статусы выхода для последующего использования
 						os.Exit(1)
 					}
 				}(c)
 			}
 
-			// Wait for all commands to finish.
+			// Ожидание завершения выполнения всех команд
 			wg.Wait()
 
-			// Stop catching signals for the currently active clients.
+			// Прекратить получение сигналов для текущих клиентов
 			signal.Stop(trap)
 			close(trap)
 		}

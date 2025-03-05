@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Client is a wrapper over the SSH connection/sessions.
+// Основная структура клиента
 type LocalhostClient struct {
 	cmd     *exec.Cmd
 	user    string
@@ -18,7 +18,7 @@ type LocalhostClient struct {
 	stdout  io.Reader
 	stderr  io.Reader
 	running bool
-	env     string //export FOO="bar"; export BAR="baz";
+	env     string // export FOO="bar"; export BAR="baz";
 }
 
 func (c *LocalhostClient) Connect(_ string) error {
@@ -107,7 +107,7 @@ func (c *LocalhostClient) Signal(sig os.Signal) error {
 }
 
 func ResolveLocalPath(cwd, path, env string) (string, error) {
-	// Check if file exists first. Use bash to resolve $ENV_VARs.
+	// Сначала проверьте, существует ли файл. Используется bash для разрешения $ENV_VARs
 	cmd := exec.Command("bash", "-c", env+"echo -n "+path)
 	cmd.Dir = cwd
 	resolvedFilename, err := cmd.Output()

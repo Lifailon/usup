@@ -13,7 +13,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Supfile represents the Stack Up configuration YAML file.
+// Структура Supfile в формате YAML
 type Supfile struct {
 	Networks Networks `yaml:"networks"`
 	Commands Commands `yaml:"commands"`
@@ -22,19 +22,17 @@ type Supfile struct {
 	Version  string   `yaml:"version"`
 }
 
-// Network is group of hosts with extra custom env vars.
+// Сеть - это группа хостов с дополнительными пользовательскими параметрами переменных (env)
 type Network struct {
-	Env       EnvList  `yaml:"env"`
-	Inventory string   `yaml:"inventory"`
-	Hosts     []string `yaml:"hosts"`
-	Bastion   string   `yaml:"bastion"` // Jump host for the environment
-
-	// Should these live on Hosts too? We'd have to change []string to struct, even in Supfile.
-	User         string // `yaml:"user"`
-	IdentityFile string // `yaml:"identity_file"`
+	Env          EnvList  `yaml:"env"`
+	Inventory    string   `yaml:"inventory"`
+	Hosts        []string `yaml:"hosts"`
+	Bastion      string   `yaml:"bastion"` // Jump host for the environment
+	User         string   // `yaml:"user"`
+	IdentityFile string   // `yaml:"identity_file"`
 }
 
-// Networks is a list of user-defined networks
+// Сети - это список сетей, определенных пользователем
 type Networks struct {
 	Names []string
 	nets  map[string]Network
@@ -65,23 +63,23 @@ func (n *Networks) Get(name string) (Network, bool) {
 	return net, ok
 }
 
-// Command represents command(s) to be run remotely.
+// Command представляет команду/команды для удаленного выполнения
 type Command struct {
-	Name   string   `yaml:"-"`      // Command name.
-	Desc   string   `yaml:"desc"`   // Command description.
-	Local  string   `yaml:"local"`  // Command(s) to be run locally.
-	Run    string   `yaml:"run"`    // Command(s) to be run remotelly.
-	Script string   `yaml:"script"` // Load command(s) from script and run it remotelly.
-	Upload []Upload `yaml:"upload"` // See Upload struct.
-	Stdin  bool     `yaml:"stdin"`  // Attach localhost STDOUT to remote commands' STDIN?
-	Once   bool     `yaml:"once"`   // The command should be run "once" (on one host only).
-	Serial int      `yaml:"serial"` // Max number of clients processing a task in parallel.
+	Name   string   `yaml:"-"`      // Название команды
+	Desc   string   `yaml:"desc"`   // Описание команды
+	Local  string   `yaml:"local"`  // Для локального запуска
+	Run    string   `yaml:"run"`    // Для удаленного запуска
+	Script string   `yaml:"script"` // Загрузить команду из скрипта и запустить ее удаленно
+	Upload []Upload `yaml:"upload"` // Структура Upload
+	Stdin  bool     `yaml:"stdin"`  // да/нет - присоединить STDOUT локального хоста к STDIN удаленных команд
+	Once   bool     `yaml:"once"`   // да/нет - команда должна быть запущена один раз (только на одном хосте).
+	Serial int      `yaml:"serial"` // Максимальное количество клиентов, обрабатывающих задачу параллельно
 
-	// API backward compatibility. Will be deprecated in v1.0.
-	RunOnce bool `yaml:"run_once"` // The command should be run once only.
+	// Обратная совместимость с API. Будет устаревшим в версии 1.0.
+	RunOnce bool `yaml:"run_once"` // да/нет - команда должна быть выполнена только один раз
 }
 
-// Commands is a list of user-defined commands
+// Список команд (определяемых пользователем)
 type Commands struct {
 	Names []string
 	cmds  map[string]Command
@@ -112,7 +110,7 @@ func (c *Commands) Get(name string) (Command, bool) {
 	return cmd, ok
 }
 
-// Targets is a list of user-defined targets
+// Список целей (определяемых пользователем)
 type Targets struct {
 	Names   []string
 	targets map[string][]string
@@ -143,15 +141,14 @@ func (t *Targets) Get(name string) ([]string, bool) {
 	return cmds, ok
 }
 
-// Upload represents file copy operation from localhost Src path to Dst
-// path of every host in a given Network.
+// Операция копирования файла из локального хоста по пути из Src в Dst
 type Upload struct {
 	Src string `yaml:"src"`
 	Dst string `yaml:"dst"`
 	Exc string `yaml:"exclude"`
 }
 
-// EnvVar represents an environment variable
+// Переменная окружения
 type EnvVar struct {
 	Key   string
 	Value string
@@ -161,13 +158,13 @@ func (e EnvVar) String() string {
 	return e.Key + `=` + e.Value
 }
 
-// AsExport returns the environment variable as a bash export statement
+// Возвращает переменную окружения в виде оператора экспорта bash
 func (e EnvVar) AsExport() string {
 	return `export ` + e.Key + `="` + e.Value + `";`
 }
 
-// EnvList is a list of environment variables that maps to a YAML map,
-// but maintains order, enabling late variables to reference early variables.
+// EnvList - это список переменных окружения, который отображается на карту YAML,
+// но сохраняет порядок, позволяя поздним переменным ссылаться на ранние.
 type EnvList []*EnvVar
 
 func (e EnvList) Slice() []string {
@@ -195,7 +192,7 @@ func (e *EnvList) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// Set key to be equal value in this list.
+// Задать для ключа значение, равное значению в этом списке
 func (e *EnvList) Set(key, value string) {
 	for i, v := range *e {
 		if v.Key == key {
@@ -237,7 +234,7 @@ func (e *EnvList) ResolveValues() error {
 }
 
 func (e *EnvList) AsExport() string {
-	// Process all ENVs into a string of form
+	// Переработайте все переменные (env) в строку вида:
 	// `export FOO="bar"; export BAR="baz";`.
 	exports := ``
 	for _, v := range *e {
@@ -259,10 +256,10 @@ func (e ErrMustUpdate) Error() string {
 }
 
 func (e ErrUnsupportedSupfileVersion) Error() string {
-	return fmt.Sprintf("%v\n\nCheck your Supfile version (available latest version: v0.5)", e.Msg)
+	return fmt.Sprintf("%v\n\nCheck your Supfile version (available latest version: v0.6.0)", e.Msg)
 }
 
-// NewSupfile parses configuration file and returns Supfile or error.
+// Парсим конфигурационный файл и возвращаем Supfile или ошибку
 func NewSupfile(data []byte) (*Supfile, error) {
 	var conf Supfile
 
@@ -270,7 +267,7 @@ func NewSupfile(data []byte) (*Supfile, error) {
 		return nil, err
 	}
 
-	// API backward compatibility. Will be deprecated in v1.0.
+	// Обратная совместимость с API. Будет устаревшим в версии 1.0.
 	switch conf.Version {
 	case "":
 		conf.Version = "0.1"
@@ -327,8 +324,7 @@ func NewSupfile(data []byte) (*Supfile, error) {
 	return &conf, nil
 }
 
-// ParseInventory runs the inventory command, if provided, and appends
-// the command's output lines to the manually defined list of hosts.
+// Запустить команду инвентаризации (если она была предоставлена), и добавить выходные строки команды к списку хостов, заданному вручную
 func (n Network) ParseInventory() ([]string, error) {
 	if n.Inventory == "" {
 		return nil, nil
@@ -355,7 +351,7 @@ func (n Network) ParseInventory() ([]string, error) {
 		}
 
 		host = strings.TrimSpace(host)
-		// skip empty lines and comments
+		// Пропускать пустые строки и комментарии
 		if host == "" || host[:1] == "#" {
 			continue
 		}
