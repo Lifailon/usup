@@ -1,14 +1,8 @@
 # Lazy Stack Up
 
-A very simple deployment tool that runs a given set of bash commands on multiple hosts in parallel. It reads `Supfile` (`yaml` configuration), which defines networks (groups of hosts), variables, commands and targets (groups of commands).
+A very simple deployment tool that runs a given set of bash commands on multiple hosts in parallel. It reads `supfile.yml` (`yaml` configuration), which defines networks (groups of hosts), global variables, commands and targets (groups of commands).
 
-This project is a fork of the [sup](https://github.com/pressly/sup), which has been unmaintained since 2018. Primarily to fix a common ssh connection error, as well as to expand functionality.
-
-## Demo
-
-[![Sup](https://github.com/pressly/sup/blob/gif/asciinema.gif?raw=true)](https://asciinema.org/a/19742?autoplay=1)
-
-*Note: Demo is based on [this example Supfile](./example/Supfile).*
+The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via ssh), expand the functionality (for example, add reading the configuration from the url) and implement a simple user interface.
 
 ## Install
 
@@ -20,50 +14,35 @@ curl -L "https://github.com/Lifailon/lazysup/releases/download/$version/sup-$os-
 chmod +x $HOME/.local/bin/sup
 ```
 
-## Build
-
-### Windows
-
-```bash
-go build -o bin/sup.exe ./cmd/sup
-bin/sup -v
-```
-
-### Linux
-
-```bash
-go build -o bin/sup ./cmd/sup
-bin/sup -v
-```
+> This will work after the first release, and there will also be a script to install and build via GitHub Actions.
 
 ## Usage
 
 ```bash
-sup [OPTIONS] NETWORK COMMAND [...]
+sup [OPTIONS] NETWORK COMMAND
 
-sup dev date
+sup -u https://raw.githubusercontent.com/Lifailon/lazysup/refs/heads/main/supfile.yaml dev date
 ```
 
 ### Options
 
-| Option            | Description                      |
-|-------------------|----------------------------------|
-| `-f Supfile`      | Custom path to Supfile           |
-| `-e`, `--env=[]`  | Set environment variables        |
-| `--only REGEXP`   | Filter hosts matching regexp     |
-| `--except REGEXP` | Filter out hosts matching regexp |
-| `--debug`, `-D`   | Enable debug/verbose mode        |
-| `--disable-prefix`| Disable hostname prefix          |
-| `--help`, `-h`    | Show help/usage                  |
-| `--version`, `-v` | Print version                    |
+| Option                                  | Description                         |
+| -                                       | -                                   |
+| `-f supfile.yml`                        | Custom path to file configuration   |
+| `-u https://example.com/supfile.yml`    | Url path to file configuration      |
+| `-e`, `--env=[]`                        | Set environment variables           |
+| `--only REGEXP`                         | Filter hosts matching regexp        |
+| `--except REGEXP`                       | Filter out hosts matching regexp    |
+| `-D`, `--debug`                         | Enable debug/verbose mode           |
+| `--disable-prefix`                      | Disable hostname prefix             |
+| `-h`, `--help`                          | Show help/usage                     |
+| `-v`, `--version`                       | Print version                       |
 
 ## Network
 
 A group of hosts.
 
 ```yaml
-# Supfile
-
 networks:
     production:
         hosts:
@@ -75,15 +54,13 @@ networks:
         inventory: curl http://example.com/latest/meta-data/hostname
 ```
 
-`$ sup production COMMAND` will run COMMAND on `api1`, `api2` and `api3` hosts in parallel.
+`sup production COMMAND` will run COMMAND on `api1`, `api2` and `api3` hosts in parallel.
 
 ## Command
 
 A shell command(s) to be run remotely.
 
 ```yaml
-# Supfile
-
 commands:
     restart:
         desc: Restart example Docker container
@@ -93,17 +70,15 @@ commands:
         run: sudo docker logs --tail=20 -f example
 ```
 
-`$ sup staging restart` will restart all staging Docker containers in parallel.
+`sup staging restart` will restart all staging Docker containers in parallel.
 
-`$ sup production tail-logs` will tail Docker logs from all production containers in parallel.
+`sup production tail-logs` will tail Docker logs from all production containers in parallel.
 
 ### Serial command (a.k.a. Rolling Update)
 
 `serial: N` constraints a command to be run on `N` hosts at a time at maximum. Rolling Update for free!
 
 ```yaml
-# Supfile
-
 commands:
     restart:
         desc: Restart example Docker container
@@ -111,15 +86,13 @@ commands:
         serial: 2
 ```
 
-`$ sup production restart` will restart all Docker containers, two at a time at maximum.
+`sup production restart` will restart all Docker containers, two at a time at maximum.
 
 ### Once command (one host only)
 
 `once: true` constraints a command to be run only on one host. Useful for one-time tasks.
 
 ```yaml
-# Supfile
-
 commands:
     build:
         desc: Build Docker image and push to registry
@@ -130,15 +103,13 @@ commands:
         run: sudo docker pull image:latest
 ```
 
-`$ sup production build pull` will build Docker image on one production host only and spread it to all hosts.
+`sup production build pull` will build Docker image on one production host only and spread it to all hosts.
 
 ### Local command
 
 Runs command always on localhost.
 
 ```yaml
-# Supfile
-
 commands:
     prepare:
         desc: Prepare to upload
@@ -150,8 +121,6 @@ commands:
 Uploads files/directories to all remote hosts. Uses `tar` under the hood.
 
 ```yaml
-# Supfile
-
 commands:
     upload:
         desc: Upload dist files to all hosts
@@ -165,8 +134,6 @@ commands:
 Do you want to interact with multiple hosts at once? Sure!
 
 ```yaml
-# Supfile
-
 commands:
     bash:
         desc: Interactive Bash on all hosts
@@ -175,21 +142,22 @@ commands:
 ```
 
 ```bash
-$ sup production bash
+sup production bash
 #
 # type in commands and see output from all hosts!
 # ^C
 ```
 
 Passing prepared commands to all hosts:
+
 ```bash
-$ echo 'sudo apt-get update -y' | sup production bash
+echo 'sudo apt-get update -y' | sup production bash
 
-# or:
-$ sup production bash <<< 'sudo apt-get update -y'
+# or
+sup production bash <<< 'sudo apt-get update -y'
 
-# or:
-$ cat <<EOF | sup production bash
+# or
+cat <<EOF | sup production bash
 sudo apt-get update -y
 date
 uname -a
@@ -199,8 +167,6 @@ EOF
 ### Interactive Docker Exec on all hosts
 
 ```yaml
-# Supfile
-
 commands:
     exec:
         desc: Exec into Docker container on all hosts
@@ -209,7 +175,7 @@ commands:
 ```
 
 ```bash
-$ sup production exec
+sup production exec
 ps aux
 strace -p 1 # trace system calls and signals on all your production hosts
 ```
@@ -221,8 +187,6 @@ Target is an alias for multiple commands. Each command will be run on all hosts 
 (thus any error on any host will interrupt the process).
 
 ```yaml
-# Supfile
-
 targets:
     deploy:
         - build
@@ -234,23 +198,15 @@ targets:
         - airbrake-notify
 ```
 
-`$ sup production deploy`
+`sup production deploy`
 
 is equivalent to
 
-`$ sup production build pull migrate-db-up stop-rm-run health slack-notify airbrake-notify`
-
-## Supfile
-
-See [example Supfile](./example/Supfile).
+`sup production build pull migrate-db-up stop-rm-run health slack-notify airbrake-notify`
 
 ### Basic structure
 
 ```yaml
-# Supfile
----
-version: 0.4
-
 # Global environment variables
 env:
   NAME: api
@@ -301,6 +257,7 @@ Supfile doesn't let you import another Supfile. Instead, it lets you run `sup` s
 ```
 
 Top-level Supfile calls `sup` with Supfiles from sub-projects:
+
 ```yaml
  restart-scheduler:
     desc: Restart scheduler
@@ -311,42 +268,6 @@ Top-level Supfile calls `sup` with Supfiles from sub-projects:
     local: >
       sup -f ./database/Supfile $SUP_ENV $SUP_NETWORK up
 ```
-
-## Common SSH Problem
-
-if for some reason sup doesn't connect and you get the following error,
-
-```bash
-connecting to clients failed: connecting to remote host failed: Connect("myserver@xxx.xxx.xxx.xxx"): ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
-```
-
-it means that your `ssh-agent` dosen't have access to your public and private keys. in order to fix this issue, follow the below instructions:
-
-- run the following command and make sure you have a key register with `ssh-agent`
-
-```bash
-ssh-add -l
-```
-
-if you see something like `The agent has no identities.` it means that you need to manually add your key to `ssh-agent`.
-in order to do that, run the following command
-
-```bash
-ssh-add ~/.ssh/id_rsa
-```
-
-you should now be able to use sup with your ssh key.
-
-
-## Development
-
-    fork it, hack it..
-
-    $ make build
-
-    create new Pull Request
-
-We'll be happy to review & accept new Pull Requests!
 
 ## License
 
