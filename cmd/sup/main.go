@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -36,6 +37,8 @@ var (
 	ErrCmd              = errors.New("Unknown command/target")
 	ErrTargetNoCommands = errors.New("No commands defined for a given target")
 	ErrConfigFile       = errors.New("Unknown ssh_config file")
+
+	configURL string
 )
 
 type flagStringSlice []string
@@ -50,7 +53,8 @@ func (f *flagStringSlice) Set(value string) error {
 }
 
 func init() {
-	flag.StringVar(&supfile, "f", "", "Custom path to ./Supfile[.yml]")
+	flag.StringVar(&supfile, "f", "", "Custom path to file configuration")
+	flag.StringVar(&configURL, "u", "", "Url path to file configuration")
 	flag.Var(&envVars, "e", "Set environment variables")
 	flag.Var(&envVars, "env", "Set environment variables")
 	flag.StringVar(&sshConfig, "sshconfig", "", "Read SSH Config file, ie. ~/.ssh/config file")
@@ -222,6 +226,29 @@ func resolvePath(path string) string {
 	return path
 }
 
+// Проверяет, существует ли файл
+func checkFileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// Логика для загрузки конфигурации из URL через http.Get
+func loadConfigFromURL(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error loading configuration from URL: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Читаем тело ответа
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error when reading response from URL: %v", err)
+	}
+
+	return data, nil
+}
+
 func main() {
 	flag.Parse()
 
@@ -236,22 +263,50 @@ func main() {
 		return
 	}
 
-	if supfile == "" {
-		supfile = "./Supfile"
-	}
-	data, err := ioutil.ReadFile(resolvePath(supfile))
-	if err != nil {
-		firstErr := err
-		data, err = ioutil.ReadFile("./Supfile.yml") // Alternative to ./Supfile
+	// Если указан config-url, загружаем конфигурацию из него
+	var data []byte
+	var err error
+
+	if configURL != "" {
+		// Загрузка конфигурации с URL
+		data, err = loadConfigFromURL(configURL)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, firstErr)
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+		// Если переменная конфигурационного файла пустая (не передано название файла через флаг параметра), то устанавливаем значение по умолчанию
+	} else if supfile == "" {
+		// Массив из названия файлов конфигурации по умолчанию (приоритет слева направо)
+		files := []string{"./lazysup.yml", "lazysup.yaml", "./Lazysup.yml", "Lazysup.yaml", "./supfile.yml", "./supfile.yaml", "./Supfile.yml", "./Supfile.yaml"}
+
+		// Ищем первый существующий файл
+		for _, file := range files {
+			if checkFileExists(file) {
+				supfile = file
+				break
+			}
+		}
+
+		// Если ни один файл не найден, возвращяем ошибку
+		if supfile == "" {
+			fmt.Fprintln(os.Stderr, "Error: сonfiguration file not found")
+			os.Exit(1)
+		}
 	}
+
+	// Читаем найденный файл
+	if configURL == "" {
+		data, err = os.ReadFile(supfile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error read сonfiguration file %s: %v\n", supfile, err)
+			os.Exit(1)
+		}
+	}
+
+	// Загружаем конфигурацию
 	conf, err := sup.NewSupfile(data)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "Error parsing сonfiguration file:", err)
 		os.Exit(1)
 	}
 
