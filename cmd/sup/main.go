@@ -31,7 +31,7 @@ var (
 	showVersion bool
 	showHelp    bool
 
-	ErrUsage            = errors.New("Usage: sup [OPTIONS] NETWORK COMMAND [...]\n       sup [ --help | -v | --version ]")
+	ErrUsage            = errors.New("Usage: usup [OPTIONS] NETWORK COMMAND [...]\n       usup [ --help | -v | --version ]")
 	ErrUnknownNetwork   = errors.New("Unknown network")
 	ErrNetworkNoHosts   = errors.New("No hosts defined for a given network")
 	ErrCmd              = errors.New("Unknown command/target")

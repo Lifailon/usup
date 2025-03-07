@@ -9,10 +9,10 @@ The goal is to revive the [sup](https://github.com/pressly/sup) project, which h
 ## Usage
 
 ```bash
-sup [OPTIONS] NETWORK COMMAND
+usup [OPTIONS] NETWORK COMMAND
 
-sup dev date
-sup -u https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/usupfile.yml dev date
+usup dev date
+usup -u https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/usupfile.yml dev date
 ```
 
 ### Supported file names
@@ -84,9 +84,9 @@ commands:
     run: echo "This is test" > ./$FILE_NAME.$FILE_FORMAT
 ```
 
-`sup local echo` output the contents of the variables
+`usup local echo` output the contents of the variables
 
-`sup local file` create test file on the local machine
+`usup local file` create test file on the local machine
 
 ### Serial and once command
 
@@ -110,7 +110,7 @@ commands:
     once: true
 ```
 
-`sup dev echo file`
+`usup dev echo file`
 
 ### Local command
 
@@ -149,16 +149,16 @@ commands:
 Send commands to all hosts simultaneously for execution.
 
 ```bash
-echo 'sudo apt-get update -y && sudo apt-get upgrade -y' | sup production bash
+echo 'sudo apt-get update -y && sudo apt-get upgrade -y' | usup production bash
 # or
-sup dev bash
+usup dev bash
 # ^C
 ```
 
 ## Target
 
 Target is an alias for multiple commands. Each command will be run on all hosts in parallel,
-`sup` will check return status from all hosts, and run subsequent commands on success only
+`usup` will check return status from all hosts, and run subsequent commands on success only
 (thus any error on any host will interrupt the process).
 
 ```yaml
@@ -171,9 +171,9 @@ targets:
     - cat
 ```
 
-`sup dev get` get uptime and current time in the system from all hosts simultaneously
+`usup dev get` get uptime and current time in the system from all hosts simultaneously
 
-`sup dev up` download and read the file
+`usup dev up` download and read the file
 
 ### Default environment variables available in Supfile
 

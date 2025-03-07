@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      Distro:
+        description: 'Select runner image' # https://github.com/actions/runner-images
+        required: true
+        default: 'ubuntu-20.04'
+        type: choice
+        options:
+          - 'ubuntu-20.04'
+          - 'ubuntu-22.04'
+          - 'ubuntu-24.04'
+          - 'macos-15'
+          - 'windows-2022'
+      Update:
+        description: 'Update dependencies'
+        default: false
+        type: boolean
+      Binary:
+        description: 'Build binary'
+        default: true
+        type: boolean
+      Version:
+        description: 'Version'
+        required: true
+        default: '0.6.0'
+        type: string
+
+jobs:
+  build:
+    runs-on: ${{ github.event.inputs.Distro }}
+
+    steps:
+      - name: Clone main repository
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.23
+
+      - name: Install dependencies
+        run: |
+          go fmt ./...
+          go vet ./...
+          go get ./...
+          go mod tidy
+          go mod verify
+          go build -v ./...
+
+      - name: Update dependencies
+        if: ${{ github.event.inputs.Update == 'true' }}
+        run: go get -u ./...
+
+      - name: Build binaries
+        if: ${{ github.event.inputs.Binary == 'true' }}
+        run: |
+          mkdir -p bin
+          architectures=("amd64" "arm64")
+          for arch in "${architectures[@]}"; do
+              GOOS=linux GOARCH=$arch go build -o bin/usup-${{ github.event.inputs.Version }}-linux-$arch
+              GOOS=darwin GOARCH=$arch go build -o bin/usup-${{ github.event.inputs.Version }}-darwin-$arch
+              GOOS=windows GOARCH=$arch go build -o bin/usup-${{ github.event.inputs.Version }}-windows-$arch.exe
+          done
+          ls -lh bin
+          echo "ARTIFACT_NAME=usup-$(date +'%d.%m.%Y')" >> $GITHUB_ENV
+
+      - name: Upload binaries
+        if: ${{ github.event.inputs.Binary == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.env.ARTIFACT_NAME }}
+          path: bin/
