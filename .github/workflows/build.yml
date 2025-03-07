@@ -71,5 +71,5 @@ jobs:
         if: ${{ github.event.inputs.Binary == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.env.ARTIFACT_NAME }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: bin/
