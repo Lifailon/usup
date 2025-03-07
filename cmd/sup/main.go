@@ -13,7 +13,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/Lifailon/sup"
+	sup "github.com/Lifailon/usup"
 	"github.com/mikkeloscar/sshconfig"
 	"github.com/pkg/errors"
 )
@@ -277,7 +277,16 @@ func main() {
 		// Если переменная конфигурационного файла пустая (не передано название файла через флаг параметра), то устанавливаем значение по умолчанию
 	} else if supfile == "" {
 		// Массив из названия файлов конфигурации по умолчанию (приоритет слева направо)
-		files := []string{"./lazysup.yml", "lazysup.yaml", "./Lazysup.yml", "Lazysup.yaml", "./supfile.yml", "./supfile.yaml", "./Supfile.yml", "./Supfile.yaml"}
+		files := []string{
+			"./usupfile.yml",
+			"./usupfile.yaml",
+			"./Usupfile.yml",
+			"./Usupfile.yaml",
+			"./supfile.yml",
+			"./supfile.yaml",
+			"./Supfile.yml",
+			"./Supfile.yaml",
+		}
 
 		// Ищем первый существующий файл
 		for _, file := range files {

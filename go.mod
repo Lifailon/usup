@@ -1,4 +1,4 @@
-module github.com/Lifailon/sup
+module github.com/Lifailon/usup
 
 go 1.23.0
 

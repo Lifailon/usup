@@ -1,27 +1,33 @@
-# Lazy Stack Up
+# Update > Stack Up
 
-A very simple deployment tool that runs a given set of bash commands on multiple hosts in parallel. It reads `supfile.yml` (`yaml` configuration), which defines networks (groups of hosts), global variables, commands and targets (groups of commands).
+A very simple deployment tool that runs a given set of bash commands on multiple hosts in parallel. It reads `usupfile.yml/supfile.yml` (`yaml` configuration), which defines networks (groups of hosts), global variables, commands and targets (groups of commands).
 
 The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via ssh), expand the functionality (for example, add reading the configuration from the url) and implement a simple user interface.
 
 ## Install
-
-```bash
-os="linux"
-arch="amd64"
-version=$(curl -s https://api.github.com/repos/Lifailon/lazysup/releases/latest | jq -r .tag_name)
-curl -L "https://github.com/Lifailon/lazysup/releases/download/$version/sup-$os-$arch" -o $HOME/.local/bin/sup
-chmod +x $HOME/.local/bin/sup
-```
-
-> This will work after the first release, and there will also be a script to install and build via GitHub Actions.
 
 ## Usage
 
 ```bash
 sup [OPTIONS] NETWORK COMMAND
 
-sup -u https://raw.githubusercontent.com/Lifailon/lazysup/refs/heads/main/supfile.yaml dev date
+sup dev date
+sup -u https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/usupfile.yml dev date
+```
+
+### Supported file names
+
+Usup will look for the following file names, in order of priority:
+
+```
+Taskfile.yml
+taskfile.yml
+Taskfile.yaml
+taskfile.yaml
+Taskfile.dist.yml
+taskfile.dist.yml
+Taskfile.dist.yaml
+taskfile.dist.yaml
 ```
 
 ### Options
@@ -40,70 +46,71 @@ sup -u https://raw.githubusercontent.com/Lifailon/lazysup/refs/heads/main/supfil
 
 ## Network
 
-A group of hosts.
+Static and dynamic host list.
 
 ```yaml
 networks:
-    production:
-        hosts:
-            - api1.example.com
-            - api2.example.com
-            - api3.example.com
-    staging:
-        # fetch dynamic list of hosts
-        inventory: curl http://example.com/latest/meta-data/hostname
+  local:
+    hosts:
+      - localhost
+  dev:
+    hosts:
+      - lifailon@192.168.3.101:2121
+      - lifailon@192.168.3.104:2121
+      - lifailon@192.168.3.105:2121
+  bsd:
+    inventory: curl https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
 ```
 
-`sup production COMMAND` will run COMMAND on `api1`, `api2` and `api3` hosts in parallel.
+## Variables and Command
 
-## Command
+```yaml
+env:
+  FILE_NAME: test
+  FILE_FORMAT: txt
 
-A shell command(s) to be run remotely.
+networks:
+  local:
+    hosts:
+      - localhost
+
+commands:
+  echo:
+    desc: Print filename from env vars
+    run: echo $FILE_NAME.$FILE_FORMAT
+
+  file:
+    desc: Creat new test file
+    run: echo "This is test" > ./$FILE_NAME.$FILE_FORMAT
+```
+
+`sup local echo` output the contents of the variables
+
+`sup local file` create test file on the local machine
+
+### Serial and once command
+
+`serial: N` constraints a command to be run on `N` hosts at a time at maximum.
 
 ```yaml
 commands:
-    restart:
-        desc: Restart example Docker container
-        run: sudo docker restart example
-    tail-logs:
-        desc: Watch tail of Docker logs from all hosts
-        run: sudo docker logs --tail=20 -f example
+  echo:
+    desc: Print filename from env vars
+    run: echo $FILE_NAME.$FILE_FORMAT
+    serial: 2
 ```
 
-`sup staging restart` will restart all staging Docker containers in parallel.
-
-`sup production tail-logs` will tail Docker logs from all production containers in parallel.
-
-### Serial command (a.k.a. Rolling Update)
-
-`serial: N` constraints a command to be run on `N` hosts at a time at maximum. Rolling Update for free!
+`once: true` constraints a command to be run only on one host.
 
 ```yaml
 commands:
-    restart:
-        desc: Restart example Docker container
-        run: sudo docker restart example
-        serial: 2
+  file:
+    desc: Creat new test file
+    run: echo "This is test" > ./$FILE_NAME.$FILE_FORMAT
+    once: true
 ```
 
-`sup production restart` will restart all Docker containers, two at a time at maximum.
-
-### Once command (one host only)
-
-`once: true` constraints a command to be run only on one host. Useful for one-time tasks.
-
-```yaml
-commands:
-    build:
-        desc: Build Docker image and push to registry
-        run: sudo docker build -t image:latest . && sudo docker push image:latest
-        once: true # one host only
-    pull:
-        desc: Pull latest Docker image from registry
-        run: sudo docker pull image:latest
-```
-
-`sup production build pull` will build Docker image on one production host only and spread it to all hosts.
+`sup dev echo file`
 
 ### Local command
 
@@ -111,73 +118,41 @@ Runs command always on localhost.
 
 ```yaml
 commands:
-    prepare:
-        desc: Prepare to upload
-        local: npm run build
+    build:
+        desc: Build in Windows
+        local: go build -o ./bin/sup.exe ./cmd/sup
 ```
 
 ### Upload command
 
-Uploads files/directories to all remote hosts. Uses `tar` under the hood.
+Uploads files/directories to all remote hosts (uses `tar` under the hood).
 
 ```yaml
 commands:
+  upload:
+    desc: Upload dist files to all hosts
     upload:
-        desc: Upload dist files to all hosts
-        upload:
-          - src: ./dist
-            dst: /tmp/
+      - src: ./$FILE_NAME.$FILE_FORMAT
+        dst: /tmp/
 ```
 
 ### Interactive Bash on all hosts
 
-Do you want to interact with multiple hosts at once? Sure!
-
 ```yaml
 commands:
-    bash:
-        desc: Interactive Bash on all hosts
-        stdin: true
-        run: bash
+  bash:
+    desc: Interactive Bash on all hosts
+    stdin: true
+    run: bash
 ```
 
+Send commands to all hosts simultaneously for execution.
+
 ```bash
-sup production bash
-#
-# type in commands and see output from all hosts!
+echo 'sudo apt-get update -y && sudo apt-get upgrade -y' | sup production bash
+# or
+sup dev bash
 # ^C
-```
-
-Passing prepared commands to all hosts:
-
-```bash
-echo 'sudo apt-get update -y' | sup production bash
-
-# or
-sup production bash <<< 'sudo apt-get update -y'
-
-# or
-cat <<EOF | sup production bash
-sudo apt-get update -y
-date
-uname -a
-EOF
-```
-
-### Interactive Docker Exec on all hosts
-
-```yaml
-commands:
-    exec:
-        desc: Exec into Docker container on all hosts
-        stdin: true
-        run: sudo docker exec -i $CONTAINER bash
-```
-
-```bash
-sup production exec
-ps aux
-strace -p 1 # trace system calls and signals on all your production hosts
 ```
 
 ## Target
@@ -188,86 +163,27 @@ Target is an alias for multiple commands. Each command will be run on all hosts 
 
 ```yaml
 targets:
-    deploy:
-        - build
-        - pull
-        - migrate-db-up
-        - stop-rm-run
-        - health
-        - slack-notify
-        - airbrake-notify
-```
-
-`sup production deploy`
-
-is equivalent to
-
-`sup production build pull migrate-db-up stop-rm-run health slack-notify airbrake-notify`
-
-### Basic structure
-
-```yaml
-# Global environment variables
-env:
-  NAME: api
-  IMAGE: example/api
-
-networks:
-  local:
-    hosts:
-      - localhost
-  staging:
-    hosts:
-      - stg1.example.com
-  production:
-    hosts:
-      - api1.example.com
-      - api2.example.com
-
-commands:
-  echo:
-    desc: Print some env vars
-    run: echo $NAME $IMAGE $SUP_NETWORK
-  date:
-    desc: Print OS name and current date/time
-    run: uname -a; date
-
-targets:
-  all:
-    - echo
+  get:
+    - uptime
     - date
+  up:
+    - upload
+    - cat
 ```
+
+`sup dev get` get uptime and current time in the system from all hosts simultaneously
+
+`sup dev up` download and read the file
 
 ### Default environment variables available in Supfile
 
-- `$SUP_HOST` - Current host.
-- `$SUP_NETWORK` - Current network.
-- `$SUP_USER` - User who invoked sup command.
-- `$SUP_TIME` - Date/time of sup command invocation.
-- `$SUP_ENV` - Environment variables provided on sup command invocation. You can pass `$SUP_ENV` to another `sup` or `docker` commands in your Supfile.
-
-## Running sup from Supfile
-
-Supfile doesn't let you import another Supfile. Instead, it lets you run `sup` sub-process from inside your Supfile. This is how you can structure larger projects:
-
-```
-./Supfile
-./database/Supfile
-./services/scheduler/Supfile
-```
-
-Top-level Supfile calls `sup` with Supfiles from sub-projects:
-
-```yaml
- restart-scheduler:
-    desc: Restart scheduler
-    local: >
-      sup -f ./services/scheduler/Supfile $SUP_ENV $SUP_NETWORK restart
- db-up:
-    desc: Migrate database
-    local: >
-      sup -f ./database/Supfile $SUP_ENV $SUP_NETWORK up
-```
+| Variable Name     | Description                                               |
+| -                 | -                                                         |
+| `$SUP_HOST`       | Current host                                              |
+| `$SUP_NETWORK`    | Current network                                           |
+| `$SUP_USER`       | User who invoked sup command                              |
+| `$SUP_TIME`       | Date/time of sup command invocation                       |
+| `$SUP_ENV`        | Environment variables provided on sup command invocation  |
 
 ## License
 
