@@ -60,9 +60,9 @@ jobs:
           mkdir -p bin
           architectures=("amd64" "arm64")
           for arch in "${architectures[@]}"; do
-              GOOS=linux GOARCH=$arch go build -o bin/usup-${{ github.event.inputs.Version }}-linux-$arch
-              GOOS=darwin GOARCH=$arch go build -o bin/usup-${{ github.event.inputs.Version }}-darwin-$arch
-              GOOS=windows GOARCH=$arch go build -o bin/usup-${{ github.event.inputs.Version }}-windows-$arch.exe
+              GOOS=linux GOARCH=$arch go build -o bin/usup-${{ github.event.inputs.Version }}-linux-$arch ./cmd/sup
+              GOOS=darwin GOARCH=$arch go build -o bin/usup-${{ github.event.inputs.Version }}-darwin-$arch ./cmd/sup
+              GOOS=windows GOARCH=$arch go build -o bin/usup-${{ github.event.inputs.Version }}-windows-$arch.exe ./cmd/sup
           done
           ls -lh bin
           echo "ARTIFACT_NAME=usup-$(date +'%d.%m.%Y')" >> $GITHUB_ENV
