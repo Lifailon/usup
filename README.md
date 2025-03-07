@@ -20,14 +20,14 @@ sup -u https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/usupfile.
 Usup will look for the following file names, in order of priority:
 
 ```
-Taskfile.yml
-taskfile.yml
-Taskfile.yaml
-taskfile.yaml
-Taskfile.dist.yml
-taskfile.dist.yml
-Taskfile.dist.yaml
-taskfile.dist.yaml
+usupfile.yml
+usupfile.yaml
+Usupfile.yml
+Usupfile.yaml
+supfile.yml
+supfile.yaml
+Supfile.yml
+Supfile.yaml
 ```
 
 ### Options
