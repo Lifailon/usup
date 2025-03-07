@@ -12,7 +12,12 @@ networks:
       - lifailon@192.168.3.104:2121 # ubuntu 20.04
       - lifailon@192.168.3.105:2121 # rocky 8.9
   bsd:
-    inventory: curl https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+    # Read host list from URL in Linux
+    inventory: curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+    # Windows PowerShell or PowerShell Core
+    # inventory: irm https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+    # Local from file
+    # inventory: cat ./hostlist
 
 commands:
   bash:

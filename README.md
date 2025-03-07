@@ -2,7 +2,7 @@
 
 A very simple deployment tool that runs a given set of bash commands on multiple hosts in parallel. It reads `usupfile.yml/supfile.yml` (`yaml` configuration), which defines networks (groups of hosts), global variables, commands and targets (groups of commands).
 
-The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via ssh), expand the functionality (for example, add reading the configuration from the url) and implement a simple user interface.
+The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via ssh), expand the functionality (for example, add reading the host list or configuration from the url) and implement a simple user interface.
 
 ## Install
 
@@ -67,7 +67,12 @@ networks:
       - lifailon@192.168.3.104:2121
       - lifailon@192.168.3.105:2121
   bsd:
-    inventory: curl https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+    # Read host list from URL in Linux
+    inventory: curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+    # Windows PowerShell or PowerShell Core
+    # inventory: irm https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+    # Local from file
+    # inventory: cat ./hostlist
 ```
 
 ## Variables and Command

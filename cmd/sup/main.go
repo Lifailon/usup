@@ -80,6 +80,11 @@ func networkUsage(conf *sup.Supfile) {
 	for _, name := range conf.Networks.Names {
 		fmt.Fprintf(w, "- %v\n", name)
 		network, _ := conf.Networks.Get(name)
+		// Если массив пустой, пытаемся извлечь хосты из Inventory
+		if len(network.Hosts) == 0 {
+			hosts, _ := network.ParseInventory()
+			network.Hosts = append(network.Hosts, hosts...)
+		}
 		for _, host := range network.Hosts {
 			fmt.Fprintf(w, "\t- %v\n", host)
 		}
@@ -111,7 +116,7 @@ func cmdUsage(conf *sup.Supfile) {
 func parseArgs(conf *sup.Supfile) (*sup.Network, []*sup.Command, error) {
 	var commands []*sup.Command
 
-	// Если аргументы отсутствуют
+	// Если аргументы отсутствуют, выводим группы хостов, НО, без обработки inventory
 	args := flag.Args()
 	if len(args) < 1 {
 		networkUsage(conf)

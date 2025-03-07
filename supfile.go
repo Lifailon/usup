@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -65,18 +66,16 @@ func (n *Networks) Get(name string) (Network, bool) {
 
 // Command представляет команду/команды для удаленного выполнения
 type Command struct {
-	Name   string   `yaml:"-"`      // Название команды
-	Desc   string   `yaml:"desc"`   // Описание команды
-	Local  string   `yaml:"local"`  // Для локального запуска
-	Run    string   `yaml:"run"`    // Для удаленного запуска
-	Script string   `yaml:"script"` // Загрузить команду из скрипта и запустить ее удаленно
-	Upload []Upload `yaml:"upload"` // Структура Upload
-	Stdin  bool     `yaml:"stdin"`  // да/нет - присоединить STDOUT локального хоста к STDIN удаленных команд
-	Once   bool     `yaml:"once"`   // да/нет - команда должна быть запущена один раз (только на одном хосте).
-	Serial int      `yaml:"serial"` // Максимальное количество клиентов, обрабатывающих задачу параллельно
-
-	// Обратная совместимость с API. Будет устаревшим в версии 1.0.
-	RunOnce bool `yaml:"run_once"` // да/нет - команда должна быть выполнена только один раз
+	Name    string   `yaml:"-"`        // Название команды
+	Desc    string   `yaml:"desc"`     // Описание команды
+	Local   string   `yaml:"local"`    // Для локального запуска
+	Run     string   `yaml:"run"`      // Для удаленного запуска
+	Script  string   `yaml:"script"`   // Загрузить команду из скрипта и запустить ее удаленно
+	Upload  []Upload `yaml:"upload"`   // Структура Upload
+	Stdin   bool     `yaml:"stdin"`    // да/нет - присоединить STDOUT локального хоста к STDIN удаленных команд
+	Once    bool     `yaml:"once"`     // да/нет - команда должна быть запущена один раз (только на одном хосте).
+	Serial  int      `yaml:"serial"`   // Максимальное количество клиентов, обрабатывающих задачу параллельно
+	RunOnce bool     `yaml:"run_once"` // да/нет - команда должна быть выполнена только один раз
 }
 
 // Список команд (определяемых пользователем)
@@ -267,60 +266,6 @@ func NewSupfile(data []byte) (*Supfile, error) {
 		return nil, err
 	}
 
-	// Обратная совместимость с API. Будет устаревшим в версии 1.0.
-	switch conf.Version {
-	case "":
-		conf.Version = "0.1"
-		fallthrough
-
-	case "0.1":
-		for _, cmd := range conf.Commands.cmds {
-			if cmd.RunOnce {
-				return nil, ErrMustUpdate{"command.run_once is not supported in Supfile v" + conf.Version}
-			}
-		}
-		fallthrough
-
-	case "0.2":
-		for _, cmd := range conf.Commands.cmds {
-			if cmd.Once {
-				return nil, ErrMustUpdate{"command.once is not supported in Supfile v" + conf.Version}
-			}
-			if cmd.Local != "" {
-				return nil, ErrMustUpdate{"command.local is not supported in Supfile v" + conf.Version}
-			}
-			if cmd.Serial != 0 {
-				return nil, ErrMustUpdate{"command.serial is not supported in Supfile v" + conf.Version}
-			}
-		}
-		for _, network := range conf.Networks.nets {
-			if network.Inventory != "" {
-				return nil, ErrMustUpdate{"network.inventory is not supported in Supfile v" + conf.Version}
-			}
-		}
-		fallthrough
-
-	case "0.3":
-		var warning string
-		for key, cmd := range conf.Commands.cmds {
-			if cmd.RunOnce {
-				warning = "Warning: command.run_once was deprecated by command.once in Supfile v" + conf.Version + "\n"
-				cmd.Once = true
-				conf.Commands.cmds[key] = cmd
-			}
-		}
-		if warning != "" {
-			fmt.Fprintf(os.Stderr, warning)
-		}
-
-		fallthrough
-
-	case "0.4", "0.5":
-
-	default:
-		return nil, ErrUnsupportedSupfileVersion{"unsupported Supfile version " + conf.Version}
-	}
-
 	return &conf, nil
 }
 
@@ -330,7 +275,19 @@ func (n Network) ParseInventory() ([]string, error) {
 		return nil, nil
 	}
 
-	cmd := exec.Command("/bin/sh", "-c", n.Inventory)
+	// Выполняем команду в Windows или Linux для чтения файла из Inventory
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		// Проверяем, установлен ли PowerShell Core
+		if _, err := exec.LookPath("pwsh"); err == nil {
+			cmd = exec.Command("pwsh", "-Command", n.Inventory)
+		} else {
+			// cmd = exec.Command("cmd", "/C", n.Inventory)
+			cmd = exec.Command("powershell", "-Command", n.Inventory)
+		}
+	} else {
+		cmd = exec.Command("sh", "-c", n.Inventory)
+	}
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, n.Env.Slice()...)
 	cmd.Stderr = os.Stderr
