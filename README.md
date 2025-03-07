@@ -6,6 +6,14 @@ The goal is to revive the [sup](https://github.com/pressly/sup) project, which h
 
 ## Install
 
+Run the command in the console to quickly install or update the stable version for Linux or macOS system:
+
+```shell
+curl -sS https://raw.githubusercontent.com/Lifailon/usup/main/install.sh | bash
+```
+
+To install on Windows, download the binary file from the [releases](https://github.com/Lifailon/usup/releases) page.
+
 ## Usage
 
 ```bash
@@ -34,8 +42,8 @@ Supfile.yaml
 
 | Option                                  | Description                         |
 | -                                       | -                                   |
-| `-f supfile.yml`                        | Custom path to file configuration   |
-| `-u https://example.com/supfile.yml`    | Url path to file configuration      |
+| `-f usupfile.yml`                       | Custom path to file configuration   |
+| `-u https://example.com/usupfile.yml`   | Url path to file configuration      |
 | `-e`, `--env=[]`                        | Set environment variables           |
 | `--only REGEXP`                         | Filter hosts matching regexp        |
 | `--except REGEXP`                       | Filter out hosts matching regexp    |
