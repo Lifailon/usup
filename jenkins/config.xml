@@ -217,6 +217,11 @@ return keyValueList as List</script>
           <choiceType>ET_UNORDERED_LIST</choiceType>
           <omitValueField>false</omitValueField>
         </org.biouno.unochoice.DynamicReferenceParameter>
+        <hudson.model.TextParameterDefinition>
+          <name>envVars</name>
+          <description>Change variable values in the format KEY=VALUE (each variable on a new line)</description>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
   </properties>
@@ -240,13 +245,28 @@ return keyValueList as List</script>
         stage(&apos;Run usup&apos;) {
             steps {
                 script {
+                    def envVars = params.envVars.trim().split(&apos;\n&apos;)
+                    def envParams = []
+                    for (line in envVars) {
+                        if (line.trim() ==~ /^[A-Za-z_][A-Za-z0-9_]*=.*/) {
+                            envParams &lt;&lt; &quot;-e \&quot;${line.trim()}\&quot;&quot;
+                        }
+                    }
+                    def envList = envParams.join(&apos; &apos;)
+                    echo &quot;Environment variables list for flag: ${envList}&quot;
+
+                    def options = &quot;-u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName}&quot;
+                    if (envParams.size() &gt; 0) {
+                        options += &quot; ${envList}&quot;
+                    }
+
                     if (params.target == &quot;null&quot;) {
                         sh &quot;&quot;&quot;
-                            ${env.WORKSPACE}/usup -u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName} ${params.network} ${params.command}
+                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}
                         &quot;&quot;&quot;
                     } else {
                         sh &quot;&quot;&quot;
-                            ${env.WORKSPACE}/usup -u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName} ${params.network} ${params.target}
+                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}
                         &quot;&quot;&quot;
                     }
                 }

@@ -17,13 +17,28 @@ pipeline {
         stage('Run usup') {
             steps {
                 script {
+                    def envVars = params.envVars.trim().split('\n')
+                    def envParams = []
+                    for (line in envVars) {
+                        if (line.trim() ==~ /^[A-Za-z_][A-Za-z0-9_]*=.*/) {
+                            envParams << "-e \"${line.trim()}\""
+                        }
+                    }
+                    def envList = envParams.join(' ')
+                    echo "Environment variables list for flag: ${envList}"
+
+                    def options = "-u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName}"
+                    if (envParams.size() > 0) {
+                        options += " ${envList}"
+                    }
+
                     if (params.target == "null") {
                         sh """
-                            ${env.WORKSPACE}/usup -u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName} ${params.network} ${params.command}
+                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}
                         """
                     } else {
                         sh """
-                            ${env.WORKSPACE}/usup -u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName} ${params.network} ${params.target}
+                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}
                         """
                     }
                 }

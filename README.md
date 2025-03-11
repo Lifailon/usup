@@ -1,8 +1,8 @@
 # Update Stack Up
 
-A very simple deployment tool that runs a given set of bash commands on multiple hosts in parallel. It reads `yaml` configuration, which defines networks (groups of hosts), global variables, commands and targets (groups of commands).
+A very simple deployment tool that runs a given set of `bash` commands on multiple hosts in parallel. It reads `yaml` configuration, which defines networks (groups of hosts), global variables (which can be changed via arguments), command(s) and targets (groups of commands).
 
-The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via `ssh`), expand the functionality (for example, add reading the configuration from the `url`), add support for the Windows system and implement a simple user interface (for example, via [Jenkins](#jenkins)).
+The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via `ssh`), expand the functionality (for example, add reading the configuration from the `url`), add support for the Windows system and implement a simple user interface (example for [Jenkins](#jenkins)).
 
 ## Install
 
@@ -29,7 +29,7 @@ This is a simple example that clones a repository and runs tests on two specifie
 
 ### Supported file names
 
-Usup will look for the following file names, in order of priority:
+By default, the following configuration file names will be searched for on startup, in order of priority.
 
 ```
 usupfile.yml
@@ -44,7 +44,7 @@ Supfile.yaml
 
 ### Options
 
-List of available flags:
+List of available flags.
 
 | Option                                  | Description                         |
 | -                                       | -                                   |
@@ -117,13 +117,13 @@ lifailon@192.168.3.101:2121 | new_test.temp
 
 Default environment variables available:
 
-| Variable Name     | Description                                               |
-| -                 | -                                                         |
-| `$SUP_HOST`       | Current host                                              |
-| `$SUP_NETWORK`    | Current network                                           |
-| `$SUP_USER`       | User who invoked sup command                              |
-| `$SUP_TIME`       | Date/time of sup command invocation                       |
-| `$SUP_ENV`        | Environment variables provided on sup command invocation  |
+| Variable Name     | Description                                           |
+| -                 | -                                                     |
+| `$SUP_HOST`       | Current host                                          |
+| `$SUP_NETWORK`    | Current network                                       |
+| `$SUP_USER`       | User who invoked command                              |
+| `$SUP_TIME`       | Date/time of command invocation                       |
+| `$SUP_ENV`        | Environment variables provided on command invocation  |
 
 ## Serial and once command
 
@@ -197,7 +197,7 @@ exit
 
 ## Target
 
-Target is an alias for a set of commands. Each command will be run on all hosts in parallel, will check the return status from all hosts and continue running subsequent commands only if successful (so any error on any host will abort the process).
+Target is an alias for a set of commands. Each command will be run on all hosts in parallel, will check the return status from all hosts and continue running subsequent commands only if successful (any error on any host will abort the process).
 
 ```yaml
 targets:
@@ -215,11 +215,13 @@ targets:
 
 ## Jenkins
 
-You can use the generic Jenkins Pipeline, which downloads a list of all available `yaml/yml` configuration files from a specified GitHub repository to select the one you need (custom `supfile`) and provides all the options available in it to run.
+You can use the Jenkins generic pipeline, which uploads a list of all available configuration files (in `yaml/yml` format) to a specified GitHub repository, to select the file you want and define all the parameters available in it to run. A list of networks, commands and targets to choose from is available, as well as a list of available variables and their values, which can be overridden.
 
 To import it, you need to fill in the active parameters from the [param](jenkins/param.groovy) file and load [Pipeline](jenkins/pipeline.groovy), or import the [config.xml](jenkins/config.xml) into the `jenkins_home/jobs/<New_Job_Name>` directory and reload the configurations from disk in the interface.
 
-To work, you need to install the [Active Choices](https://plugins.jenkins.io/uno-choice) plugin and add a private ssh key to the slave agents.
+To work, you need to install the [Active Choices](https://plugins.jenkins.io/uno-choice) plugin and add a private ssh key to the slave agents (installation and removal of usup is done in pipeline stages).
+
+![jenkins-param](img/jenkins-param.jpg)
 
 ## License
 

@@ -81,6 +81,7 @@ return targetsList
 
 // Active Choices Reactive Reference Parameter: env
 // Description: Environment variables list
+// Choice Type: Bullet items list
 // Referenced parameters: repoPath,repoBranch,fileName
 
 import org.yaml.snakeyaml.Yaml
@@ -96,3 +97,6 @@ for (entry in data.env.entrySet()) {
     keyValueList.add("${entry.key}=${entry.value}")
 }
 return keyValueList as List
+
+// Multi-line String Parameter: envVars
+// Description: Change variable values in the format KEY=VALUE (each variable on a new line)
