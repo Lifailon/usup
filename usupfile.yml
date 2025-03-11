@@ -10,8 +10,11 @@ networks:
     hosts:
       - lifailon@192.168.3.101:2121 # ubuntu 24.04
       - lifailon@192.168.3.104:2121 # ubuntu 20.04
-      - lifailon@192.168.3.105:2121 # rocky 8.9
   bsd:
+    hosts:
+      - lifailon@192.168.3.102:22 # openbsd 7.6 
+      - root@192.168.3.103:22 # freebsd 14.2
+  remote:
     # Read host list from URL in Linux
     inventory: curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
     # Windows PowerShell or PowerShell Core

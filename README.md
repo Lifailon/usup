@@ -1,8 +1,8 @@
-# Update > Stack Up
+# Update Stack Up
 
-A very simple deployment tool that runs a given set of bash commands on multiple hosts in parallel. It reads `usupfile.yml/supfile.yml` (`yaml` configuration), which defines networks (groups of hosts), global variables, commands and targets (groups of commands).
+A very simple deployment tool that runs a given set of bash commands on multiple hosts in parallel. It reads `yaml` configuration, which defines networks (groups of hosts), global variables, commands and targets (groups of commands).
 
-The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via ssh), expand the functionality (for example, add reading the host list or configuration from the url) and implement a simple user interface.
+The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via `ssh`), expand the functionality (for example, add reading the configuration from the `url`), add support for the Windows system and implement a simple user interface (for example, via [Jenkins](#jenkins)).
 
 ## Install
 
@@ -17,11 +17,15 @@ To install on Windows, download the binary file from the [releases](https://gith
 ## Usage
 
 ```bash
-usup [OPTIONS] NETWORK COMMAND
+usup [options] network <command(s)/target>
 
 usup dev date
 usup -u https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/usupfile.yml dev date
 ```
+
+This is a simple example that clones a repository and runs tests on two specified machines, which I use to test the [lazyjournal](https://github.com/Lifailon/lazyjournal) project on `*bsd` systems:
+
+![go-test](img/go-test.jpg)
 
 ### Supported file names
 
@@ -39,6 +43,8 @@ Supfile.yaml
 ```
 
 ### Options
+
+List of available flags:
 
 | Option                                  | Description                         |
 | -                                       | -                                   |
@@ -65,8 +71,7 @@ networks:
     hosts:
       - lifailon@192.168.3.101:2121
       - lifailon@192.168.3.104:2121
-      - lifailon@192.168.3.105:2121
-  bsd:
+  remote:
     # Read host list from URL in Linux
     inventory: curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
     # Windows PowerShell or PowerShell Core
@@ -83,25 +88,44 @@ env:
   FILE_FORMAT: txt
 
 networks:
-  local:
+  dev:
     hosts:
-      - localhost
+      - lifailon@192.168.3.101:2121
+      - lifailon@192.168.3.104:2121
 
 commands:
   echo:
     desc: Print filename from env vars
     run: echo $FILE_NAME.$FILE_FORMAT
-
-  file:
-    desc: Creat new test file
-    run: echo "This is test" > ./$FILE_NAME.$FILE_FORMAT
 ```
 
-`usup local echo` output the contents of the variables
+Output the contents of variables:
 
-`usup local file` create test file on the local machine
+```bash
+usup dev echo
+lifailon@192.168.3.101:2121 | test.txt
+lifailon@192.168.3.104:2121 | test.txt
+```
 
-### Serial and once command
+Change the contents of variables:
+
+```bash
+usup -e "FILE_NAME=new_test" -e "FILE_FORMAT=temp" dev echo
+lifailon@192.168.3.104:2121 | new_test.temp
+lifailon@192.168.3.101:2121 | new_test.temp
+```
+
+Default environment variables available:
+
+| Variable Name     | Description                                               |
+| -                 | -                                                         |
+| `$SUP_HOST`       | Current host                                              |
+| `$SUP_NETWORK`    | Current network                                           |
+| `$SUP_USER`       | User who invoked sup command                              |
+| `$SUP_TIME`       | Date/time of sup command invocation                       |
+| `$SUP_ENV`        | Environment variables provided on sup command invocation  |
+
+## Serial and once command
 
 `serial: N` constraints a command to be run on `N` hosts at a time at maximum.
 
@@ -125,18 +149,7 @@ commands:
 
 `usup dev echo file`
 
-### Local command
-
-Runs command always on localhost.
-
-```yaml
-commands:
-    build:
-        desc: Build in Windows
-        local: go build -o ./bin/sup.exe ./cmd/sup
-```
-
-### Upload command
+## Upload files
 
 Uploads files/directories to all remote hosts (uses `tar` under the hood).
 
@@ -149,7 +162,20 @@ commands:
         dst: /tmp/
 ```
 
-### Interactive Bash on all hosts
+## Local command
+
+Runs command always on localhost.
+
+```yaml
+commands:
+    build:
+        desc: Build in Windows
+        local: go build -o ./bin/sup.exe ./cmd/sup
+```
+
+### Interactive Bash
+
+You can pass any `bash` commands from `stdin` to execute them on all hosts:
 
 ```yaml
 commands:
@@ -165,14 +191,13 @@ Send commands to all hosts simultaneously for execution.
 echo 'sudo apt-get update -y && sudo apt-get upgrade -y' | usup production bash
 # or
 usup dev bash
-# ^C
+ls
+exit
 ```
 
 ## Target
 
-Target is an alias for multiple commands. Each command will be run on all hosts in parallel,
-`usup` will check return status from all hosts, and run subsequent commands on success only
-(thus any error on any host will interrupt the process).
+Target is an alias for a set of commands. Each command will be run on all hosts in parallel, will check the return status from all hosts and continue running subsequent commands only if successful (so any error on any host will abort the process).
 
 ```yaml
 targets:
@@ -184,19 +209,17 @@ targets:
     - cat
 ```
 
-`usup dev get` get uptime and current time in the system from all hosts simultaneously
+`usup dev get` get uptime and current time in the system from all hosts simultaneously (run `uptime` and `date` commands).
 
-`usup dev up` download and read the file
+`usup dev up` download and read the file.
 
-### Default environment variables available in Supfile
+## Jenkins
 
-| Variable Name     | Description                                               |
-| -                 | -                                                         |
-| `$SUP_HOST`       | Current host                                              |
-| `$SUP_NETWORK`    | Current network                                           |
-| `$SUP_USER`       | User who invoked sup command                              |
-| `$SUP_TIME`       | Date/time of sup command invocation                       |
-| `$SUP_ENV`        | Environment variables provided on sup command invocation  |
+You can use the generic Jenkins Pipeline, which downloads a list of all available `yaml/yml` configuration files from a specified GitHub repository to select the one you need (custom `supfile`) and provides all the options available in it to run.
+
+To import it, you need to fill in the active parameters from the [param](jenkins/param.groovy) file and load [Pipeline](jenkins/pipeline.groovy), or import the [config.xml](jenkins/config.xml) into the `jenkins_home/jobs/<New_Job_Name>` directory and reload the configurations from disk in the interface.
+
+To work, you need to install the [Active Choices](https://plugins.jenkins.io/uno-choice) plugin and add a private ssh key to the slave agents.
 
 ## License
 
