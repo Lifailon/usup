@@ -118,6 +118,14 @@ return data.networks.keySet() as List</script>
           <filterable>false</filterable>
           <filterLength>1</filterLength>
         </org.biouno.unochoice.CascadeChoiceParameter>
+        <hudson.model.TextParameterDefinition>
+          <name>localHostList</name>
+          <description>Set host list (each host on a new line in the format USER@IP:PORT) for network group: local-host-list</description>
+          <defaultValue>lifailon@192.168.3.102:22
+root@192.168.3.103:22
+lifailon@192.168.3.104:2121</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
         <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.6">
           <name>command</name>
           <description>Select command for run</description>
@@ -245,6 +253,17 @@ return keyValueList as List</script>
         stage(&apos;Run usup&apos;) {
             steps {
                 script {
+                    // Get host list from param
+                    writeFile file: &apos;hostlist&apos;, text: params.localHostList
+                    def hostlist = readFile(&apos;hostlist&apos;)
+                    echo &quot;Local host list in file:\n${hostlist}&quot;
+
+                    // Check params
+                    def options = &quot;-u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName}&quot;
+                    sh &quot;${env.WORKSPACE}/usup ${options} || true&quot;
+                    sh &quot;${env.WORKSPACE}/usup ${options} ${params.network} || true&quot;
+
+                    // Get env from param
                     def envVars = params.envVars.trim().split(&apos;\n&apos;)
                     def envParams = []
                     for (line in envVars) {
@@ -255,19 +274,16 @@ return keyValueList as List</script>
                     def envList = envParams.join(&apos; &apos;)
                     echo &quot;Environment variables list for flag: ${envList}&quot;
 
-                    def options = &quot;-u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName}&quot;
+                    // Set options
                     if (envParams.size() &gt; 0) {
                         options += &quot; ${envList}&quot;
                     }
 
+                    // Run usup
                     if (params.target == &quot;null&quot;) {
-                        sh &quot;&quot;&quot;
-                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}
-                        &quot;&quot;&quot;
+                        sh &quot;${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}&quot;
                     } else {
-                        sh &quot;&quot;&quot;
-                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}
-                        &quot;&quot;&quot;
+                        sh &quot;${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}&quot;
                     }
                 }
             }

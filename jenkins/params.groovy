@@ -36,7 +36,7 @@ def yamlFiles = json.tree.findAll { it.path.endsWith('.yml') || it.path.endsWith
 return yamlFiles as List
 
 // Active Choices Reactive Parameter: network
-// Description: Select network (host list)
+// Description: Set host list (each host on a new line) for Network: local-list
 // Referenced parameters: repoPath,repoBranch,fileName
 
 import org.yaml.snakeyaml.Yaml
@@ -48,6 +48,10 @@ def yaml = new Yaml()
 def data = yaml.load(supfile)
 
 return data.networks.keySet() as List
+
+// Multi-line String Parameter: localHostList
+// Description: Set host list (each host on a new line in the format USER@IP:PORT) for network group: local-host-list
+// def repoPath = "Lifailon/usup"
 
 // Active Choices Reactive Parameter: command
 // Description: Select command for run

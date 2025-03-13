@@ -17,6 +17,17 @@ pipeline {
         stage('Run usup') {
             steps {
                 script {
+                    // Get host list from param
+                    writeFile file: 'hostlist', text: params.localHostList
+                    def hostlist = readFile('hostlist')
+                    echo "Local host list in file:\n${hostlist}"
+
+                    // Check params
+                    def options = "-u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName}"
+                    sh "${env.WORKSPACE}/usup ${options} || true"
+                    sh "${env.WORKSPACE}/usup ${options} ${params.network} || true"
+
+                    // Get env from param
                     def envVars = params.envVars.trim().split('\n')
                     def envParams = []
                     for (line in envVars) {
@@ -27,19 +38,16 @@ pipeline {
                     def envList = envParams.join(' ')
                     echo "Environment variables list for flag: ${envList}"
 
-                    def options = "-u https://raw.githubusercontent.com/${params.repoPath}/refs/heads/main/${params.fileName}"
+                    // Set options
                     if (envParams.size() > 0) {
                         options += " ${envList}"
                     }
 
+                    // Run usup
                     if (params.target == "null") {
-                        sh """
-                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}
-                        """
+                        sh "${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}"
                     } else {
-                        sh """
-                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}
-                        """
+                        sh "${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}"
                     }
                 }
             }
