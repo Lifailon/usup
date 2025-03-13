@@ -12,15 +12,18 @@ networks:
       - lifailon@192.168.3.104:2121 # ubuntu 20.04
   bsd:
     hosts:
-      - lifailon@192.168.3.102:22 # openbsd 7.6 
-      - root@192.168.3.103:22 # freebsd 14.2
-  remote:
+      - lifailon@192.168.3.102:22   # openbsd 7.6 
+      - root@192.168.3.103:22       # freebsd 14.2
+  remote-host-list:
     # Read host list from URL in Linux
-    inventory: curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+    inventory: printf '%s\n' $(curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist)
     # Windows PowerShell or PowerShell Core
-    # inventory: irm https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
-    # Local from file
-    # inventory: cat ./hostlist
+    # inventory: Invoke-RestMethod https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+  local-host-list:
+    # Linux
+    inventory: printf '%s\n' $(cat ./hostlist)
+    # Windows
+    # inventory: Get-Content ./hostlist
 
 commands:
   bash:
@@ -51,7 +54,7 @@ commands:
     upload:
       - src: ./$FILE_NAME.$FILE_FORMAT
         dst: /tmp/
-        
+
   cat:
      desc: Print OS name and current date/time
      run: cat /tmp/$FILE_NAME.$FILE_FORMAT

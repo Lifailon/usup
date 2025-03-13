@@ -1,4 +1,6 @@
-# Update Stack Up
+<h2 align="center">
+    Update Stack Up
+</h2>
 
 A very simple deployment tool that runs a given set of `bash` commands on multiple hosts in parallel. It reads `yaml` configuration, which defines networks (groups of hosts), global variables (which can be changed via arguments), command(s) and targets (groups of commands).
 
@@ -23,11 +25,19 @@ usup dev date
 usup -u https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/usupfile.yml dev date
 ```
 
-This is a simple example that clones a repository and runs tests on two specified machines, which I use to test the [lazyjournal](https://github.com/Lifailon/lazyjournal) project on `*bsd` systems:
+This is a simple example that clones a repository and runs tests on two specified machines, which I use to test the [lazyjournal](https://github.com/Lifailon/lazyjournal) project on BSD-based systems:
 
 ![go-test](img/go-test.jpg)
 
-### Supported file names
+## Templates and contributing
+
+This repository will also contain a set of [templates](/templates/) for configuring the system and installing packages.
+
+I use the [ubuntu-preparation](/templates/ubuntu-preparation.yml) template for initial configuration of new hosts and [fetch](/templates/fetch.yml) to collect system information.
+
+You can contribute and add your template to this repository via [Pull Request](https://github.com/Lifailon/usup/pulls).
+
+## Supported file names
 
 By default, the following configuration file names will be searched for on startup, in order of priority.
 
@@ -42,7 +52,7 @@ Supfile.yml
 Supfile.yaml
 ```
 
-### Options
+## Options
 
 List of available flags.
 
@@ -60,7 +70,7 @@ List of available flags.
 
 ## Network
 
-Static and dynamic host list.
+Network is a group of hosts that can be static or dynamic from URL or a local file.
 
 ```yaml
 networks:
@@ -71,13 +81,16 @@ networks:
     hosts:
       - lifailon@192.168.3.101:2121
       - lifailon@192.168.3.104:2121
-  remote:
+  remote-host-list:
     # Read host list from URL in Linux
-    inventory: curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+    inventory: printf '%s\n' $(curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist)
     # Windows PowerShell or PowerShell Core
-    # inventory: irm https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
-    # Local from file
-    # inventory: cat ./hostlist
+    # inventory: Invoke-RestMethod https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist
+  local-host-list:
+    # Linux
+    inventory: printf '%s\n' $(cat ./hostlist)
+    # Windows
+    # inventory: Get-Content ./hostlist
 ```
 
 ## Variables and Command
@@ -173,7 +186,7 @@ commands:
         local: go build -o ./bin/sup.exe ./cmd/sup
 ```
 
-### Interactive Bash
+## Interactive Bash
 
 You can pass any `bash` commands from `stdin` to execute them on all hosts:
 
