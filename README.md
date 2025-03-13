@@ -1,6 +1,4 @@
-<h2 align="center">
-    Update Stack Up
-</h2>
+# Update Stack Up
 
 A very simple deployment tool that runs a given set of `bash` commands on multiple hosts in parallel. It reads `yaml` configuration, which defines networks (groups of hosts), global variables (which can be changed via arguments), command(s) and targets (groups of commands).
 
@@ -234,7 +232,7 @@ To import it, you need to fill in the active parameters from the [param](jenkins
 
 To work, you need to install the [Active Choices](https://plugins.jenkins.io/uno-choice) plugin and add a private ssh key to the slave agents (installation and removal of usup is done in pipeline stages).
 
-![jenkins-param](img/jenkins-param.jpg)
+![jenkins-param](img/jenkins-params.jpg)
 
 ## License
 
