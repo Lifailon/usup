@@ -1,0 +1,48 @@
+networks:
+  local:
+    hosts:
+      - localhost
+  dev:
+    hosts:
+      - lifailon@192.168.3.101:2121
+      - lifailon@192.168.3.104:2121
+  remote-list:
+    inventory: printf '%s\n' $(curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist)
+  local-list:
+    inventory: printf '%s\n' $(cat ./hostlist)
+
+commands:
+  neofetch:
+    desc: Run neofetch
+    run: curl -s https://raw.githubusercontent.com/dylanaraps/neofetch/refs/heads/master/neofetch | bash
+
+  pfetch:
+    desc: Run pfetch
+    run: curl -s https://raw.githubusercontent.com/dylanaraps/pfetch/refs/heads/master/pfetch | bash
+
+  screenfetch:
+    desc: Run screenfetch
+    run: curl -s https://raw.githubusercontent.com/KittyKatt/screenFetch/refs/heads/master/screenfetch-dev | bash
+
+  nerdfetch:
+    desc: Run nerdfetch
+    run: curl -s https://raw.githubusercontent.com/ThatOneCalculator/NerdFetch/refs/heads/main/nerdfetch | bash
+
+  bench:
+    desc: Run Yet Another Bench Script
+    run: curl -sL https://yabs.sh | bash
+
+  system-check:
+    desc: Run system-check
+    run: curl -s https://raw.githubusercontent.com/m0zgen/system-checks/master/system-check.sh | sudo bash
+
+  hwstat:
+    desc: Run hwstat
+    run: curl -s https://raw.githubusercontent.com/Lifailon/hwstat/refs/heads/rsa/hwstat.sh | bash
+
+targets:
+  all-fetch:
+    - neofetch
+    - pfetch
+    - screenfetch
+    - nerdfetch
