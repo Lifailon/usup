@@ -20,13 +20,14 @@
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
           <name>repoPath</name>
-          <description>Format: &lt;UserName/Repository&gt;</description>
+          <description>Set the repository address on GitHub.
+Format: &lt;USERNAME/REPOSITORY&gt;.</description>
           <defaultValue>lifailon/usup</defaultValue>
           <trim>false</trim>
         </hudson.model.StringParameterDefinition>
         <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.8">
           <name>repoBranch</name>
-          <description>Select branch</description>
+          <description>Select branch.</description>
           <randomName>choice-parameter-479607741508858</randomName>
           <visibleItemCount>1</visibleItemCount>
           <script class="org.biouno.unochoice.model.GroovyScript">
@@ -60,7 +61,7 @@ return branches as List</script>
         </org.biouno.unochoice.CascadeChoiceParameter>
         <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.8">
           <name>fileName</name>
-          <description>Select configuration file (supfile in yml/yaml format)</description>
+          <description>Select configuration file in yml or yaml format.</description>
           <randomName>choice-parameter-479438407946639</randomName>
           <visibleItemCount>1</visibleItemCount>
           <script class="org.biouno.unochoice.model.GroovyScript">
@@ -74,7 +75,10 @@ connection.requestMethod = &apos;GET&apos;
 def response = connection.inputStream.text
 
 def json = new JsonSlurper().parseText(response)
-def yamlFiles = json.tree.findAll { it.path.endsWith(&apos;.yml&apos;) || it.path.endsWith(&apos;.yaml&apos;) }.collect { it.path }
+def yamlFiles = json.tree.findAll { 
+    (it.path.endsWith(&apos;.yml&apos;) || it.path.endsWith(&apos;.yaml&apos;)) &amp;&amp; 
+    !it.path.split(&apos;/&apos;).any { dir -&gt; dir.startsWith(&apos;.&apos;) }
+}.collect { it.path }
 return yamlFiles as List</script>
               <sandbox>true</sandbox>
             </secureScript>
@@ -93,7 +97,7 @@ return yamlFiles as List</script>
         </org.biouno.unochoice.CascadeChoiceParameter>
         <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.8">
           <name>network</name>
-          <description>Select network (host list)</description>
+          <description>Select network (aliace for host list).</description>
           <randomName>choice-parameter-479518669012871</randomName>
           <visibleItemCount>1</visibleItemCount>
           <script class="org.biouno.unochoice.model.GroovyScript">
@@ -124,14 +128,16 @@ return data.networks.keySet() as List</script>
         </org.biouno.unochoice.CascadeChoiceParameter>
         <hudson.model.TextParameterDefinition>
           <name>localHostList</name>
-          <description>Set host list (each host on a new line in the format USER@IP:PORT) for network group: local-host-list</description>
-          <defaultValue>lifailon@192.168.3.102:22
-root@192.168.3.103:22</defaultValue>
+          <description>Set the host list.
+Each host on a new line in the format &lt;USERNAME@HOSTNAME:PORT&gt;.
+⚠️ To use the parameter, select the network: &quot;local-host-list&quot;.</description>
+          <defaultValue>lifailon@192.168.3.105:2121
+lifailon@192.168.3.106:2121</defaultValue>
           <trim>false</trim>
         </hudson.model.TextParameterDefinition>
         <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.8">
           <name>command</name>
-          <description>Select command for run</description>
+          <description>Select command for execution.</description>
           <randomName>choice-parameter-479518672164416</randomName>
           <visibleItemCount>1</visibleItemCount>
           <script class="org.biouno.unochoice.model.GroovyScript">
@@ -162,7 +168,8 @@ return data.commands.keySet() as List</script>
         </org.biouno.unochoice.CascadeChoiceParameter>
         <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.8.8">
           <name>target</name>
-          <description>Select target (groups of commands) for run or using null for command run</description>
+          <description>Select target (alias for a group of commands) to execution.
+⚠️ Use &quot;null&quot; to execution the selected command.</description>
           <randomName>choice-parameter-479518674155445</randomName>
           <visibleItemCount>1</visibleItemCount>
           <script class="org.biouno.unochoice.model.GroovyScript">
@@ -196,7 +203,7 @@ return targetsList
         </org.biouno.unochoice.CascadeChoiceParameter>
         <org.biouno.unochoice.DynamicReferenceParameter plugin="uno-choice@2.8.8">
           <name>env</name>
-          <description>Environment variables list</description>
+          <description>List of environment variables used.</description>
           <randomName>choice-parameter-546068867453181</randomName>
           <visibleItemCount>1</visibleItemCount>
           <script class="org.biouno.unochoice.model.GroovyScript">
@@ -230,7 +237,7 @@ return keyValueList as List</script>
         </org.biouno.unochoice.DynamicReferenceParameter>
         <hudson.model.TextParameterDefinition>
           <name>envVars</name>
-          <description>Change variable values in the format KEY=VALUE (each variable on a new line)</description>
+          <description>Change variable values in the format &lt;KEY=VALUE&gt; (each variable on a new line).</description>
           <trim>false</trim>
         </hudson.model.TextParameterDefinition>
       </parameterDefinitions>
