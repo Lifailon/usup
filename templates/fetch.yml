@@ -2,10 +2,14 @@ networks:
   local:
     hosts:
       - localhost
-  dev:
+  rpi:
     hosts:
-      - lifailon@192.168.3.101:2121
-      - lifailon@192.168.3.104:2121
+      - lifailon@192.168.3.105:2121
+      - lifailon@192.168.3.106:2121
+  bsd:
+    hosts:
+      - root@192.168.3.102:22
+      - root@192.168.3.103:22
   remote-host-list:
     inventory: printf '%s\n' $(curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist)
   local-host-list:
@@ -28,21 +32,24 @@ commands:
     desc: Run nerdfetch
     run: curl -s https://raw.githubusercontent.com/ThatOneCalculator/NerdFetch/refs/heads/main/nerdfetch | bash
 
-  bench:
+  yabs:
     desc: Run Yet Another Bench Script
-    run: curl -sL https://yabs.sh | bash
+    run: curl -sSL https://yabs.sh | bash
 
-  system-check:
-    desc: Run system-check
-    run: curl -s https://raw.githubusercontent.com/m0zgen/system-checks/master/system-check.sh | sudo bash
+  quickbench:
+    desc: Run Quick Linux-based VM bench
+    run: curl -sSL https://raw.githubusercontent.com/bearstech/quickbench/refs/heads/main/quickbench | bash
 
   hwstat:
-    desc: Run hwstat
+    desc: Get Hardware Statistics
     run: curl -s https://raw.githubusercontent.com/Lifailon/hwstat/refs/heads/rsa/hwstat.sh | bash
 
 targets:
-  all-fetch:
+  fetch:
     - neofetch
     - pfetch
     - screenfetch
     - nerdfetch
+  bench:
+    - yabs
+    - quickbench

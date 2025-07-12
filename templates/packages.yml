@@ -1,0 +1,58 @@
+env:
+  PACKAGE_NAME: jq
+
+networks:
+  local:
+    hosts:
+      - localhost
+  rpi:
+    hosts:
+      - lifailon@192.168.3.105:2121
+      - lifailon@192.168.3.106:2121
+  remote-host-list:
+    inventory: printf '%s\n' $(curl -s https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/hostlist)
+  local-host-list:
+    inventory: printf '%s\n' $(cat ./hostlist)
+
+commands:
+  update-packages:
+    desc: Updates the package list and installs updates for packages
+    run: sudo apt-get update -y && sudo apt-get upgrade -y
+      
+  apt-install:
+    desc: Install via api
+    run: sudo apt install -y $PACKAGE_NAME
+
+  apt-get-install:
+    desc: Install via api-get
+    run: sudo apt-get install -y $PACKAGE_NAME
+
+  snap-install:
+    desc: Install via snap
+    run: sudo snap install $PACKAGE_NAME
+
+  apt-remove:
+    desc: Install via api
+    run: sudo apt remove -y $PACKAGE_NAME
+
+  apt-get-remove:
+    desc: Install via api-get
+    run: sudo apt-get remove -y $PACKAGE_NAME
+
+  snap-remove:
+    desc: Install via snap
+    run: sudo snap remove $PACKAGE_NAME
+
+targets:
+  apt-re-install:
+    - apt-remove
+    - update-packages
+    - apt-install
+  apt-get-re-install:
+    - apt-get-remove
+    - update-packages
+    - apt-get-install
+  snap-re-install:
+    - snap-remove
+    - update-packages
+    - snap-install
