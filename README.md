@@ -2,7 +2,8 @@
 
 A very simple deployment tool that runs a given set of `bash` commands on multiple hosts in parallel. It reads `yaml` configuration, which defines networks (groups of hosts), global variables (which can be changed via arguments), command(s) and targets (groups of commands).
 
-The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via `ssh`), expand the functionality (for example, add reading the configuration from the `url`), add support for the Windows system and implement a simple user interface (example for [Jenkins](#jenkins)).
+> [!NOTE]
+> The goal is to revive the [sup](https://github.com/pressly/sup) project, which has not been supported since 2018. First of all, to solve common problems (for example, an error when connecting via `ssh`), expand the functionality (for example, add reading the configuration from the `url`), add support for the Windows system and implement a simple user interface (example for [Jenkins](#jenkins)).
 
 ## Install
 
@@ -25,15 +26,13 @@ usup -u https://raw.githubusercontent.com/Lifailon/usup/refs/heads/main/usupfile
 
 This is a simple example that clones a repository and runs tests on two specified machines, which I use to test the [lazyjournal](https://github.com/Lifailon/lazyjournal) project on BSD-based systems:
 
-![go-test](img/go-test.jpg)
+![go-test](/img/go-test.jpg)
 
-## Templates and contributing
+## Templates & Contributing
 
-This repository will also contain a set of [templates](/templates/) for configuring the system and installing packages.
+This repository also plans to contain a set of [templates](/templates/) for [installing packages](/templates/packages.yml), [getting information](/templates/fetch.yml) and configuring the system.
 
-I use the [ubuntu-preparation](/templates/ubuntu-preparation.yml) template for initial configuration of new hosts and [fetch](/templates/fetch.yml) to collect system information.
-
-You can contribute and add your template to this repository via [Pull Request](https://github.com/Lifailon/usup/pulls).
+You can contribute and add your template to this repository via a [Pull Request](https://github.com/Lifailon/usup/pulls).
 
 ## Supported file names
 
@@ -230,9 +229,15 @@ You can use the Jenkins generic pipeline, which uploads a list of all available 
 
 To import it, you need to fill in the active parameters from the [param](jenkins/params.groovy) file and load [Pipeline](jenkins/pipeline.groovy), or import the [config.xml](jenkins/config.xml) into the `jenkins_home/jobs/<New_Job_Name>` directory and reload the configurations from disk in the interface.
 
-To work, you need to install the [Active Choices](https://plugins.jenkins.io/uno-choice) plugin and add a private ssh key to the slave agents (installation and removal of usup is done in pipeline stages).
+To work, you need to install the [Active Choices](https://plugins.jenkins.io/uno-choice) plugin and forward ssh private key to the Jenkins agents from host, by exaple: `-v $HOME/.ssh/id_rsa:/home/jenkins/.ssh/id_rsa`
 
-![jenkins-param](img/jenkins-params.jpg)
+![jenkins-param](/img/jenkins-params.jpg)
+
+Example of execution results:
+
+![jenkins-build](/img/jenkins-build.jpg)
+
+The [AnsiColor](https://plugins.jenkins.io/ansicolor) plugin is used to coloring the output.
 
 ## License
 
