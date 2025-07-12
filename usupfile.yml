@@ -61,8 +61,8 @@ commands:
     desc: Get disk and memory stats
     run: |
       uname -a
-      df -hT
       free -hL
+      df -hT
 
 targets:
   get:

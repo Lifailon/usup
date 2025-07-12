@@ -1,10 +1,9 @@
-// String Parameter: repoPath
-// Description: Format: <UserName/Repository>
+// 1. String Parameter: repoPath
+// Description: Set the repository address on GitHub.
+// Format: <USERNAME/REPOSITORY>.
 // def repoPath = "Lifailon/usup"
 
-// Active Choices Reactive Parameter: repoBranch
-// Description: Select branch
-// Referenced parameters: repoPath
+// 2. Active Choices Reactive Parameter: repoBranch
 
 import groovy.json.JsonSlurper
 
@@ -19,9 +18,10 @@ def json = new JsonSlurper().parseText(response)
 def branches = json.collect { it.name }
 return branches as List
 
-// Active Choices Reactive Parameter: fileName
-// Description: Select configuration file (supfile in yml/yaml format)
-// Referenced parameters: repoPath,repoBranch
+// Description: Select branch.
+// Referenced parameters: repoPath
+
+// 3. Active Choices Reactive Parameter: fileName
 
 import groovy.json.JsonSlurper
 
@@ -32,12 +32,16 @@ connection.requestMethod = 'GET'
 def response = connection.inputStream.text
 
 def json = new JsonSlurper().parseText(response)
-def yamlFiles = json.tree.findAll { it.path.endsWith('.yml') || it.path.endsWith('.yaml') }.collect { it.path }
+def yamlFiles = json.tree.findAll { 
+    (it.path.endsWith('.yml') || it.path.endsWith('.yaml')) && 
+    !it.path.split('/').any { dir -> dir.startsWith('.') }
+}.collect { it.path }
 return yamlFiles as List
 
-// Active Choices Reactive Parameter: network
-// Description: Set host list (each host on a new line) for Network: local-list
-// Referenced parameters: repoPath,repoBranch,fileName
+// Description: Select configuration file in yml or yaml format.
+// Referenced parameters: repoPath,repoBranch
+
+// 4. Active Choices Reactive Parameter: network
 
 import org.yaml.snakeyaml.Yaml
 
@@ -49,13 +53,16 @@ def data = yaml.load(supfile)
 
 return data.networks.keySet() as List
 
-// Multi-line String Parameter: localHostList
-// Description: Set host list (each host on a new line in the format USER@IP:PORT) for network group: local-host-list
+// Description: Select network (aliace for host list).
+// Referenced parameters: repoPath,repoBranch,fileName
+
+// 5. Multi-line String Parameter: localHostList
+// Description: Set the host list.
+// Each host on a new line in the format <USERNAME@HOSTNAME:PORT>.
+// ⚠️ To use the parameter, select the network: "local-host-list".
 // def repoPath = "Lifailon/usup"
 
-// Active Choices Reactive Parameter: command
-// Description: Select command for run
-// Referenced parameters: repoPath,repoBranch,fileName
+// 6. Active Choices Reactive Parameter: command
 
 import org.yaml.snakeyaml.Yaml
 
@@ -67,8 +74,12 @@ def data = yaml.load(supfile)
 
 return data.commands.keySet() as List
 
-// Active Choices Reactive Parameter: target
-// Description: Select target (groups of commands) for run or using null for command run
+// Description: Select command for execution.
+// Referenced parameters: repoPath,repoBranch,fileName
+
+// 7. Active Choices Reactive Parameter: target
+// Description: Select target (alias for a group of commands) to execution.
+// ⚠️ Use "null" to execution the selected command.
 // Referenced parameters: repoPath,repoBranch,fileName
 
 import org.yaml.snakeyaml.Yaml
@@ -83,10 +94,7 @@ def targetsList = data.targets.keySet() as List
 targetsList.add(0, null)
 return targetsList
 
-// Active Choices Reactive Reference Parameter: env
-// Description: Environment variables list
-// Choice Type: Bullet items list
-// Referenced parameters: repoPath,repoBranch,fileName
+// 8. Active Choices Reactive Reference Parameter: env
 
 import org.yaml.snakeyaml.Yaml
 
@@ -102,5 +110,9 @@ for (entry in data.env.entrySet()) {
 }
 return keyValueList as List
 
-// Multi-line String Parameter: envVars
-// Description: Change variable values in the format KEY=VALUE (each variable on a new line)
+// Description: List of environment variables used.
+// Choice Type: Bullet items list
+// Referenced parameters: repoPath,repoBranch,fileName
+
+// 9. Multi-line String Parameter: envVars
+// Description: Change variable values in the format <KEY=VALUE> (each variable on a new line).
