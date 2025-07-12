@@ -6,13 +6,13 @@ networks:
   local:
     hosts:
       - localhost
-  dev:
+  rpi:
     hosts:
-      - lifailon@192.168.3.101:2121 # ubuntu 24.04
-      - lifailon@192.168.3.104:2121 # ubuntu 20.04
+      - lifailon@192.168.3.105:2121 # raspberry-pi 6.8.0-1028
+      - lifailon@192.168.3.106:2121 # raspberry-pi 6.14.0-1008
   bsd:
     hosts:
-      - lifailon@192.168.3.102:22   # openbsd 7.6 
+      - root@192.168.3.102:22       # openbsd 7.6 
       - root@192.168.3.103:22       # freebsd 14.2
   remote-host-list:
     # Read host list from URL in Linux
@@ -41,9 +41,7 @@ commands:
 
   date:
     desc: Print OS name and current date/time
-    run: |
-       uname -a
-       date
+    run: date
 
   file:
     desc: Creat new test file
@@ -56,13 +54,22 @@ commands:
         dst: /tmp/
 
   cat:
-     desc: Print OS name and current date/time
+     desc: Read test file
      run: cat /tmp/$FILE_NAME.$FILE_FORMAT
+
+  stats:
+    desc: Get disk and memory stats
+    run: |
+      uname -a
+      df -hT
+      free -hL
 
 targets:
   get:
     - uptime
     - date
+    - stats
   up:
+    - file
     - upload
     - cat
