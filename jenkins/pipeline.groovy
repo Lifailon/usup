@@ -1,12 +1,22 @@
 pipeline {
     agent any
+    options {
+        // Add support for standard ANSI escape sequences via plugin ansiColor (https://plugins.jenkins.io/ansicolor)
+        ansiColor('xterm')
+    }
     stages {
         stage('Install usup') {
             steps {
                 script {
+                    // Get arch on agent and download usup binary from GitHub
                     sh """
                         GITHUB_LATEST_VERSION=\$(curl -L -sS -H 'Accept: application/json' https://github.com/Lifailon/usup/releases/latest | sed -e 's/.*"tag_name":"\\([^"]*\\)".*/\\1/')
-                        BIN_URL="https://github.com/Lifailon/usup/releases/download/\$GITHUB_LATEST_VERSION/usup-\$GITHUB_LATEST_VERSION-linux-amd64"
+                        ARCH=\$(uname -m)
+                        case \$ARCH in
+                            x86_64|amd64) ARCH="amd64" ;;
+                            aarch64) ARCH="arm64" ;;
+                        esac
+                        BIN_URL="https://github.com/Lifailon/usup/releases/download/\$GITHUB_LATEST_VERSION/usup-\$GITHUB_LATEST_VERSION-linux-\$ARCH"
                         curl -L -sS "\$BIN_URL" -o ${env.WORKSPACE}/usup
                         chmod +x ${env.WORKSPACE}/usup
                         ${env.WORKSPACE}/usup -v
