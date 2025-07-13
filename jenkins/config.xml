@@ -240,17 +240,49 @@ return keyValueList as List</script>
           <description>Change variable values in the format &lt;KEY=VALUE&gt; (each variable on a new line).</description>
           <trim>false</trim>
         </hudson.model.TextParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>credentials</name>
+          <description>ID SSH Username with private key from Jenkins Credentials for ssh connection.</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4151.v5406e29e3c90">
-    <script>pipeline {
+    <script>def SSH_KEY_FILE = &quot;&quot;
+
+pipeline {
     agent any
     options {
         // Add support for standard ANSI escape sequences via plugin ansiColor (https://plugins.jenkins.io/ansicolor)
         ansiColor(&apos;xterm&apos;)
     }
     stages {
+        stage(&apos;Get ssh key&apos;) {
+            steps {
+                script {
+                    SSH_KEY_FILE = sh(
+                        script: &quot;echo $HOME&quot;,
+                        returnStdout: true
+                    ).trim() + &quot;/.ssh/id_rsa&quot;
+                    withCredentials(
+                        [
+                            sshUserPrivateKey(
+                                credentialsId: params.credentials,
+                                keyFileVariable: &apos;SSH_KEY&apos;,
+                                passphraseVariable: &apos;&apos;
+                            )
+                        ]
+                    ) {
+                        writeFile(
+                            file: SSH_KEY_FILE,
+                            text: readFile(SSH_KEY)
+                        )
+                        sh &quot;chmod 600 ${SSH_KEY_FILE}&quot;
+                    }
+                }
+            }
+        }
         stage(&apos;Install usup&apos;) {
             steps {
                 script {
@@ -301,9 +333,13 @@ return keyValueList as List</script>
 
                     // Run usup
                     if (params.target == &quot;null&quot;) {
-                        sh &quot;${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}&quot;
+                        sh &quot;&quot;&quot;
+                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}
+                        &quot;&quot;&quot;
                     } else {
-                        sh &quot;${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}&quot;
+                        sh &quot;&quot;&quot;
+                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}
+                        &quot;&quot;&quot;
                     }
                 }
             }
@@ -313,7 +349,7 @@ return keyValueList as List</script>
         always {
             script {
                 sh &quot;&quot;&quot;
-                    rm ${env.WORKSPACE}/usup
+                    rm -f ${env.WORKSPACE}/usup ${SSH_KEY_FILE}
                 &quot;&quot;&quot;
             }
         }

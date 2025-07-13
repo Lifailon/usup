@@ -1,3 +1,5 @@
+def SSH_KEY_FILE = ""
+
 pipeline {
     agent any
     options {
@@ -5,6 +7,31 @@ pipeline {
         ansiColor('xterm')
     }
     stages {
+        stage('Get ssh key') {
+            steps {
+                script {
+                    SSH_KEY_FILE = sh(
+                        script: "echo $HOME",
+                        returnStdout: true
+                    ).trim() + "/.ssh/id_rsa"
+                    withCredentials(
+                        [
+                            sshUserPrivateKey(
+                                credentialsId: params.credentials,
+                                keyFileVariable: 'SSH_KEY',
+                                passphraseVariable: ''
+                            )
+                        ]
+                    ) {
+                        writeFile(
+                            file: SSH_KEY_FILE,
+                            text: readFile(SSH_KEY)
+                        )
+                        sh "chmod 600 ${SSH_KEY_FILE}"
+                    }
+                }
+            }
+        }
         stage('Install usup') {
             steps {
                 script {
@@ -55,9 +82,13 @@ pipeline {
 
                     // Run usup
                     if (params.target == "null") {
-                        sh "${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}"
+                        sh """
+                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.command}
+                        """
                     } else {
-                        sh "${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}"
+                        sh """
+                            ${env.WORKSPACE}/usup ${options} ${params.network} ${params.target}
+                        """
                     }
                 }
             }
@@ -67,7 +98,7 @@ pipeline {
         always {
             script {
                 sh """
-                    rm ${env.WORKSPACE}/usup
+                    rm -f ${env.WORKSPACE}/usup ${SSH_KEY_FILE}
                 """
             }
         }

@@ -116,3 +116,6 @@ return keyValueList as List
 
 // 9. Multi-line String Parameter: envVars
 // Description: Change variable values in the format <KEY=VALUE> (each variable on a new line).
+
+// 10. String Parameter: credentials
+// Description: ID SSH Username with private key from Jenkins Credentials for ssh connection.

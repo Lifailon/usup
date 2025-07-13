@@ -227,17 +227,23 @@ targets:
 
 You can use the Jenkins generic pipeline, which uploads a list of all available configuration files (in `yaml/yml` format) to a specified GitHub repository, to select the file you want and define all the parameters available in it to run. A list of networks, commands and targets to choose from is available, as well as a list of available variables and their values, which can be overridden.
 
-To import it, you need to fill in the active parameters from the [param](jenkins/params.groovy) file and load [Pipeline](jenkins/pipeline.groovy), or import the [config.xml](jenkins/config.xml) into the `jenkins_home/jobs/<New_Job_Name>` directory and reload the configurations from disk in the interface.
+### Import
 
-To work, you need to install the [Active Choices](https://plugins.jenkins.io/uno-choice) plugin and forward ssh private key to the Jenkins agents from host, by exaple: `-v $HOME/.ssh/id_rsa:/home/jenkins/.ssh/id_rsa`
+To import it, you need to fill in the active parameters from the [param](/jenkins/params.groovy) file and add [Pipeline](/jenkins/pipeline.groovy) script from SCM or import the [config.xml](/jenkins/config.xml) into the `jenkins_home/jobs/<New_Job_Name>` directory and reload the configurations from disk in the interface.
+
+### Plugins used (dependencies)
+
+- [Active Choices](https://plugins.jenkins.io/uno-choice) for use dynamic parameters.
+- [SSH Pipeline Steps](https://plugins.jenkins.io/ssh-steps) for import ssh key from credentials on the agent.
+- [AnsiColor](https://plugins.jenkins.io/ansicolor) (optional) for coloring output.
+
+### Parameters
 
 ![jenkins-param](/img/jenkins-params.jpg)
 
 Example of execution results:
 
 ![jenkins-build](/img/jenkins-build.jpg)
-
-The [AnsiColor](https://plugins.jenkins.io/ansicolor) plugin is used to coloring the output.
 
 ## License
 

@@ -33,7 +33,7 @@ commands:
     run: bash
 
   run-env:
-    desc: Execution command from the COMMAND variable
+    desc: Execution command from the COMMAND variable in Bash
     run: bash -c "$COMMAND"
 
   uptime:
