@@ -1,0 +1,16 @@
+{
+    "name": "usup",
+    "params": {
+        "repoPath": "Lifailon/usup",
+        "repoBranch": "main",
+        "fileName": "usupfile.yml",
+        "network": "local-host-list",
+        "localHostList": "lifailon@192.168.3.105:2121\nlifailon@192.168.3.106:2121",
+        "command": "run-env",
+        "target": "null",
+        "env": "",
+        "envVars": "COMMAND=uname -a",
+        "credentials": "d5da50fc-5a98-44c4-8c55-d009081a861a",
+        "debug": true
+    }
+}
